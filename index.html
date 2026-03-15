@@ -4,23 +4,180 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HDOS - Lumbridge</title>
-<link rel="stylesheet" href="css/ui.css">
+<style>
+/* HDOS UI - OSRS Style */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+#game-container { position: relative; width: 100vw; height: 100vh; }
+#game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+#ui-overlay > * { pointer-events: auto; }
+
+/* Loading screen */
+#loading-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #1a0a00; display: flex; align-items: center; justify-content: center;
+  z-index: 1000; transition: opacity 0.8s;
+}
+#loading-screen.hidden { opacity: 0; pointer-events: none; }
+#loading-content { text-align: center; color: #ffd700; }
+#loading-content h1 { font-size: 48px; text-shadow: 0 0 20px #ff6600; margin-bottom: 10px; letter-spacing: 8px; }
+#loading-content .subtitle { font-size: 14px; color: #8b7530; margin-bottom: 20px; font-style: italic; }
+#loading-bar-container { width: 350px; height: 22px; border: 2px solid #5c4a1e; border-radius: 4px; margin: 15px auto; background: #1a0f00; }
+#loading-bar { height: 100%; width: 0%; background: linear-gradient(to right, #8b6914, #ffd700); border-radius: 2px; transition: width 0.3s; }
+#loading-status { font-size: 12px; color: #8b7530; margin-top: 10px; }
+#loading-pct { font-size: 11px; color: #5c4a1e; margin-top: 5px; }
+
+/* Minimap */
+#minimap-container {
+  position: fixed; top: 5px; right: 5px;
+  width: 164px; height: 164px;
+  border: 3px solid #5c4a1e; border-radius: 50%;
+  overflow: hidden; background: #0a1a0a;
+}
+#minimap { width: 100%; height: 100%; border-radius: 50%; }
+#compass {
+  position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+  color: #ffd700; font-weight: bold; font-size: 12px; text-shadow: 0 0 3px #000;
+}
+
+/* Status orbs */
+#status-orbs {
+  position: fixed; top: 175px; right: 145px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.orb {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid #5c4a1e; background: #1a0a00;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.orb span { position: relative; z-index: 2; color: #fff; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 1px #000; }
+.orb-fill { position: absolute; bottom: 0; width: 100%; transition: height 0.3s; }
+.hp-fill { background: rgba(200,0,0,0.5); height: 100%; }
+.prayer-fill { background: rgba(0,150,200,0.5); height: 100%; }
+.run-fill { background: rgba(200,170,0,0.5); height: 100%; }
+
+/* Chat box */
+#chatbox {
+  position: fixed; bottom: 0; left: 0; width: 500px; height: 160px;
+  background: rgba(0,0,0,0.85); border: 2px solid #5c4a1e; border-bottom: none; border-left: none;
+}
+#chat-tabs { display: flex; background: #2a1a00; border-bottom: 1px solid #5c4a1e; }
+.chat-tab {
+  flex: 1; padding: 4px 2px; background: none; border: none;
+  color: #cba135; font-size: 11px; cursor: pointer; transition: 0.2s;
+}
+.chat-tab:hover, .chat-tab.active { color: #ffd700; background: rgba(255,215,0,0.1); }
+#chat-messages {
+  height: 110px; overflow-y: auto; padding: 5px 8px;
+  font-size: 12px; color: #fff; scrollbar-width: thin; scrollbar-color: #5c4a1e transparent;
+}
+#chat-messages .msg { margin: 1px 0; line-height: 1.4; }
+#chat-messages .msg-game { color: #5882ff; }
+#chat-messages .msg-public { color: #fff; }
+#chat-messages .msg-npc { color: #ff0; }
+#chat-messages .msg-system { color: #ff3333; }
+#chat-messages .msg-trade { color: #8040ff; }
+#chat-input {
+  width: 100%; padding: 4px 8px; background: #1a0f00;
+  border: none; border-top: 1px solid #5c4a1e;
+  color: #fff; font-size: 12px; outline: none;
+}
+
+/* Right panel */
+#right-panel {
+  position: fixed; top: 175px; right: 0; width: 205px;
+  background: rgba(0,0,0,0.85); border: 2px solid #5c4a1e;
+  border-right: none;
+}
+#panel-tabs { display: flex; background: #2a1a00; border-bottom: 1px solid #5c4a1e; }
+.panel-tab {
+  flex: 1; padding: 6px; background: none; border: none;
+  font-size: 16px; cursor: pointer; filter: grayscale(0.5); transition: 0.2s;
+}
+.panel-tab:hover, .panel-tab.active { filter: none; background: rgba(255,215,0,0.1); }
+#panel-content { padding: 5px; }
+.panel { display: none; }
+.panel.active { display: block; }
+#inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.inv-slot {
+  width: 44px; height: 44px; background: rgba(60,40,10,0.6);
+  border: 1px solid #5c4a1e; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; color: #cba135;
+  cursor: pointer; position: relative;
+}
+.inv-slot:hover { background: rgba(100,70,20,0.6); }
+.inv-slot .item-count {
+  position: absolute; bottom: 1px; right: 2px;
+  font-size: 9px; color: #ff0; text-shadow: 1px 1px 0 #000;
+}
+#skills-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.skill-entry {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 5px; background: rgba(60,40,10,0.4);
+  border: 1px solid #3a2a0a; font-size: 10px; color: #cba135;
+}
+.skill-entry .skill-icon { font-size: 14px; }
+.skill-entry .skill-level { color: #ffd700; font-weight: bold; }
+
+/* XP drops */
+#xp-drops {
+  position: fixed; top: 50px; right: 180px; width: 100px;
+  pointer-events: none; text-align: right;
+}
+.xp-drop {
+  color: #fff; font-size: 14px; font-weight: bold;
+  text-shadow: 1px 1px 2px #000; animation: xpFloat 2s ease-out forwards;
+}
+@keyframes xpFloat {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-60px); }
+}
+
+/* Context menu */
+#context-menu {
+  position: fixed; background: #2a1a00; border: 2px solid #5c4a1e;
+  min-width: 150px; z-index: 100;
+}
+#context-menu.hidden { display: none; }
+#context-options { list-style: none; }
+#context-options li {
+  padding: 4px 12px; color: #cba135; font-size: 12px; cursor: pointer;
+}
+#context-options li:hover { background: rgba(255,215,0,0.15); color: #ffd700; }
+#context-options li:first-child { color: #ff0; font-weight: bold; }
+
+/* NPC dialog */
+#npc-dialog {
+  position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%);
+  width: 420px; background: rgba(0,0,0,0.92); border: 2px solid #5c4a1e;
+  padding: 15px; text-align: center; border-radius: 4px;
+}
+#npc-dialog.hidden { display: none; }
+#npc-dialog-name { color: #ffd700; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+#npc-dialog-text { color: #fff; font-size: 13px; margin-bottom: 12px; line-height: 1.4; }
+#npc-dialog-options button {
+  margin: 3px; padding: 5px 15px; background: #2a1a00; border: 1px solid #5c4a1e;
+  color: #00bfff; cursor: pointer; font-size: 12px;
+}
+#npc-dialog-options button:hover { background: #3a2a10; color: #fff; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #5c4a1e; border-radius: 3px; }
+</style>
 </head>
 <body>
 <div id="game-container">
   <canvas id="game-canvas"></canvas>
-  
-  <!-- OSRS-style UI overlay -->
   <div id="ui-overlay">
-    <!-- Top bar -->
     <div id="top-bar">
       <div id="minimap-container">
         <canvas id="minimap" width="160" height="160"></canvas>
         <div id="compass">N</div>
       </div>
     </div>
-
-    <!-- Chat box -->
     <div id="chatbox">
       <div id="chat-tabs">
         <button class="chat-tab active" data-tab="all">All</button>
@@ -33,8 +190,6 @@
       <div id="chat-messages"></div>
       <input id="chat-input" type="text" placeholder="Press Enter to chat..." />
     </div>
-
-    <!-- Right panel: inventory/skills/etc -->
     <div id="right-panel">
       <div id="panel-tabs">
         <button class="panel-tab active" data-panel="inventory" title="Inventory">🎒</button>
@@ -43,58 +198,36 @@
         <button class="panel-tab" data-panel="prayer" title="Prayer">🙏</button>
       </div>
       <div id="panel-content">
-        <div id="inventory-panel" class="panel active">
-          <div id="inventory-grid"></div>
-        </div>
-        <div id="skills-panel" class="panel">
-          <div id="skills-list"></div>
-        </div>
-        <div id="equipment-panel" class="panel">
-          <div id="equipment-slots"></div>
-        </div>
-        <div id="prayer-panel" class="panel">
-          <p style="color:#ff0;text-align:center;padding:20px;">Coming soon...</p>
-        </div>
+        <div id="inventory-panel" class="panel active"><div id="inventory-grid"></div></div>
+        <div id="skills-panel" class="panel"><div id="skills-list"></div></div>
+        <div id="equipment-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;">Coming soon...</p></div>
+        <div id="prayer-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;">Coming soon...</p></div>
       </div>
     </div>
-
-    <!-- XP drops -->
     <div id="xp-drops"></div>
-
-    <!-- Health/prayer bars -->
     <div id="status-orbs">
       <div class="orb" id="hp-orb"><span id="hp-text">10</span><div class="orb-fill hp-fill"></div></div>
       <div class="orb" id="prayer-orb"><span id="prayer-text">1</span><div class="orb-fill prayer-fill"></div></div>
       <div class="orb" id="run-orb"><span id="run-text">100</span><div class="orb-fill run-fill"></div></div>
     </div>
-
-    <!-- Right-click context menu -->
-    <div id="context-menu" class="hidden">
-      <ul id="context-options"></ul>
-    </div>
-
-    <!-- NPC dialog -->
+    <div id="context-menu" class="hidden"><ul id="context-options"></ul></div>
     <div id="npc-dialog" class="hidden">
       <div id="npc-dialog-name"></div>
       <div id="npc-dialog-text"></div>
       <div id="npc-dialog-options"></div>
     </div>
   </div>
-
-  <!-- Loading screen -->
   <div id="loading-screen">
     <div id="loading-content">
       <h1>HDOS</h1>
-      <p>Loading Lumbridge...</p>
-      <div id="loading-bar-container">
-        <div id="loading-bar"></div>
-      </div>
-      <p id="loading-status">Initializing...</p>
+      <p class="subtitle">HD Old School Client</p>
+      <div id="loading-bar-container"><div id="loading-bar"></div></div>
+      <p id="loading-status">Initializing engine...</p>
+      <p id="loading-pct">0%</p>
     </div>
   </div>
 </div>
 
-<!-- Three.js and addons from CDN -->
 <script type="importmap">
 {
   "imports": {
@@ -104,6 +237,1357 @@
 }
 </script>
 
-<script type="module" src="js/main.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { Water } from 'three/addons/objects/Water.js';
+
+// ============================================================
+//  CONSTANTS
+// ============================================================
+const MODEL_BASE = 'https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/main/addons/kaykit_medieval_hexagon_pack/Assets/gltf/';
+const PH = 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k';
+const TILE = 2;
+
+// ============================================================
+//  LOADING MANAGER
+// ============================================================
+const loadingScreen = document.getElementById('loading-screen');
+const loadingBar = document.getElementById('loading-bar');
+const loadingStatus = document.getElementById('loading-status');
+const loadingPct = document.getElementById('loading-pct');
+
+let totalAssets = 0, loadedAssets = 0;
+function trackAsset() { totalAssets++; }
+function assetLoaded(name) {
+  loadedAssets++;
+  const pct = Math.min(100, Math.round((loadedAssets / Math.max(1, totalAssets)) * 100));
+  loadingBar.style.width = pct + '%';
+  loadingPct.textContent = pct + '%';
+  if (name) loadingStatus.textContent = name;
+}
+
+// ============================================================
+//  TEXTURES (Poly Haven PBR)
+// ============================================================
+const texLoader = new THREE.TextureLoader();
+const texCache = {};
+
+function loadPBR(name, rx, ry) {
+  const key = `${name}_${rx}_${ry}`;
+  if (texCache[key]) return texCache[key];
+  const cfg = (tex, srgb) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(rx, ry);
+    if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  };
+  trackAsset(); trackAsset(); trackAsset();
+  const result = {
+    map: cfg(texLoader.load(`${PH}/${name}/${name}_diff_1k.jpg`, () => assetLoaded(`Texture: ${name} diffuse`)), true),
+    normalMap: cfg(texLoader.load(`${PH}/${name}/${name}_nor_gl_1k.jpg`, () => assetLoaded(`Texture: ${name} normal`))),
+    roughnessMap: cfg(texLoader.load(`${PH}/${name}/${name}_rough_1k.jpg`, () => assetLoaded(`Texture: ${name} rough`))),
+  };
+  texCache[key] = result;
+  return result;
+}
+
+function makeMat(texSet, extras = {}) {
+  return new THREE.MeshStandardMaterial({
+    map: texSet.map, normalMap: texSet.normalMap,
+    normalScale: new THREE.Vector2(0.8, 0.8),
+    roughnessMap: texSet.roughnessMap, ...extras,
+  });
+}
+
+function colorMat(color, roughness = 0.85, metalness = 0.0) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
+
+const TEX = {
+  grass: (rx=30,ry=30) => loadPBR('forrest_ground_01',rx,ry),
+  cobble: (rx=6,ry=6) => loadPBR('cobblestone_floor_08',rx,ry),
+  stone: (rx=2,ry=2) => loadPBR('medieval_blocks_05',rx,ry),
+  dirt: (rx=8,ry=8) => loadPBR('brown_mud_02',rx,ry),
+  wood: (rx=2,ry=2) => loadPBR('wood_planks_dirty',rx,ry),
+};
+
+// ============================================================
+//  RENDERER
+// ============================================================
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xC8B898, 0.003);
+
+// ============================================================
+//  CAMERA
+// ============================================================
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.5, 500);
+const camState = {
+  distance: 35, angle: 0, pitch: 55,
+  targetPos: new THREE.Vector3(0, 0, 15),
+  minPitch: 20, maxPitch: 80, minDist: 12, maxDist: 70,
+};
+
+function updateCamera() {
+  const pr = THREE.MathUtils.degToRad(camState.pitch);
+  const ar = camState.angle;
+  const d = camState.distance;
+  camera.position.set(
+    camState.targetPos.x + Math.sin(ar) * Math.cos(pr) * d,
+    camState.targetPos.y + Math.sin(pr) * d,
+    camState.targetPos.z + Math.cos(ar) * Math.cos(pr) * d
+  );
+  camera.lookAt(camState.targetPos);
+}
+
+// ============================================================
+//  LIGHTING
+// ============================================================
+const hemiLight = new THREE.HemisphereLight(0xC8AA78, 0x445522, 0.6);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xFFDDBB, 1.8);
+sunLight.position.set(40, 60, 30);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 200;
+sunLight.shadow.camera.left = -80;
+sunLight.shadow.camera.right = 80;
+sunLight.shadow.camera.top = 80;
+sunLight.shadow.camera.bottom = -80;
+sunLight.shadow.bias = -0.001;
+sunLight.shadow.normalBias = 0.02;
+scene.add(sunLight);
+scene.add(sunLight.target);
+
+const fillLight = new THREE.DirectionalLight(0x8899BB, 0.3);
+fillLight.position.set(-30, 20, -40);
+scene.add(fillLight);
+
+// ============================================================
+//  SKY
+// ============================================================
+const sky = new Sky();
+sky.scale.setScalar(10000);
+scene.add(sky);
+const skyU = sky.material.uniforms;
+skyU['turbidity'].value = 4;
+skyU['rayleigh'].value = 1.5;
+skyU['mieCoefficient'].value = 0.005;
+skyU['mieDirectionalG'].value = 0.8;
+const sunPos = new THREE.Vector3();
+const phi = THREE.MathUtils.degToRad(90 - 35);
+const theta = THREE.MathUtils.degToRad(220);
+sunPos.setFromSphericalCoords(1, phi, theta);
+skyU['sunPosition'].value.copy(sunPos);
+sunLight.position.copy(sunPos).multiplyScalar(60);
+
+// ============================================================
+//  POST-PROCESSING
+// ============================================================
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight), 0.15, 0.4, 0.85
+);
+composer.addPass(bloomPass);
+composer.addPass(new SMAAPass(window.innerWidth, window.innerHeight));
+
+// ============================================================
+//  TERRAIN
+// ============================================================
+function terrainHeight(wx, wz) {
+  const riverDist = Math.abs(wx - 20);
+  let riverDip = 0;
+  if (riverDist < 16) riverDip = -1.5 * (1 - riverDist / 16);
+  const hill = Math.sin(wx * 0.015) * Math.cos(wz * 0.012) * 2.0
+    + Math.sin(wx * 0.035 + 1) * Math.sin(wz * 0.028) * 1.0
+    + Math.cos(wx * 0.008 + wz * 0.006) * 3.0;
+  const castleDist = Math.sqrt(wx * wx + wz * wz);
+  const castleFlat = Math.max(0, 1 - castleDist / 40);
+  const southRise = Math.max(0, wz * 0.005);
+  return (hill + riverDip + southRise) * (1 - castleFlat * 0.8);
+}
+window._terrainHeight = terrainHeight;
+
+function createTerrain() {
+  const SIZE = 128;
+  const geo = new THREE.PlaneGeometry(SIZE * TILE, SIZE * TILE, SIZE, SIZE);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, terrainHeight(pos.getX(i), pos.getZ(i)));
+  }
+  geo.computeVertexNormals();
+  const mat = makeMat(TEX.grass(40, 40));
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.receiveShadow = true;
+  mesh.name = 'terrain';
+  scene.add(mesh);
+
+  // Cobblestone paths
+  createPath(0, -25 * TILE, 3 * TILE, 50 * TILE, 3, 50); // N-S
+  createPath(0, 0, 40 * TILE, 3 * TILE, 40, 3); // E-W
+  createPath(10, -5 * TILE, 14 * TILE, 3 * TILE, 14, 3); // to bridge
+
+  return mesh;
+}
+
+function createPath(cx, cz, w, d, rx, ry) {
+  const geo = new THREE.PlaneGeometry(w, d, Math.ceil(rx), Math.ceil(ry));
+  geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    p.setY(i, terrainHeight(p.getX(i) + cx, p.getZ(i) + cz) + 0.08);
+  }
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, makeMat(TEX.cobble(rx, ry)));
+  mesh.position.set(cx, 0, cz);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+}
+
+// ============================================================
+//  GLTF MODEL LOADER
+// ============================================================
+const gltfLoader = new GLTFLoader();
+const loadedModels = {};
+
+function loadModel(path, name) {
+  return new Promise((resolve) => {
+    trackAsset();
+    loadingStatus.textContent = `Loading: ${name}...`;
+    gltfLoader.load(MODEL_BASE + path, (gltf) => {
+      const model = gltf.scene;
+      model.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      loadedModels[name] = model;
+      assetLoaded(`Model: ${name}`);
+      resolve(model);
+    }, undefined, (err) => {
+      console.warn(`Failed to load ${name}:`, err);
+      assetLoaded(`Model: ${name} (failed)`);
+      resolve(null);
+    });
+  });
+}
+
+// ============================================================
+//  WORLD BUILDING — place models
+// ============================================================
+const buildings = [];
+
+function placeModel(model, x, z, scale, rotY, userData) {
+  if (!model) return null;
+  const clone = model.clone();
+  clone.scale.set(scale, scale, scale);
+  const y = terrainHeight(x, z);
+  clone.position.set(x, y, z);
+  clone.rotation.y = rotY || 0;
+  if (userData) clone.userData = userData;
+  scene.add(clone);
+  buildings.push(clone);
+  return clone;
+}
+
+// ============================================================
+//  RIVER with Water shader
+// ============================================================
+let water;
+function createRiver() {
+  const riverGeo = new THREE.PlaneGeometry(10, 200, 10, 100);
+  trackAsset();
+  water = new Water(riverGeo, {
+    textureWidth: 512, textureHeight: 512,
+    waterNormals: texLoader.load(
+      'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/textures/waternormals.jpg',
+      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; assetLoaded('Water normals'); },
+    ),
+    sunDirection: sunPos.clone(),
+    sunColor: 0xffffff,
+    waterColor: 0x001e4d,
+    distortionScale: 3.7,
+    fog: true,
+  });
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(22, -0.3, 0);
+  scene.add(water);
+  return water;
+}
+
+// ============================================================
+//  BRIDGE
+// ============================================================
+function createBridge() {
+  const group = new THREE.Group();
+  const mat = makeMat(TEX.cobble(3, 2));
+  const stoneMat = makeMat(TEX.stone(2, 1));
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(8, 0.5, 14), mat);
+  deck.position.y = 2; deck.castShadow = true; deck.receiveShadow = true;
+  group.add(deck);
+
+  const archGeo = new THREE.TorusGeometry(3.5, 0.7, 6, 8, Math.PI);
+  const arch = new THREE.Mesh(archGeo, stoneMat);
+  arch.rotation.y = Math.PI / 2;
+  arch.position.set(0, 0.5, 0);
+  arch.castShadow = true;
+  group.add(arch);
+
+  for (const sx of [-3.2, 3.2]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.5, 14), stoneMat);
+    rail.position.set(sx, 3, 0); rail.castShadow = true;
+    group.add(rail);
+    for (let z = -6; z <= 6; z += 3) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.2, 0.5), stoneMat);
+      post.position.set(sx, 3.2, z); post.castShadow = true;
+      group.add(post);
+    }
+  }
+
+  group.position.set(22, terrainHeight(22, -10) + 0.5, -10);
+  scene.add(group);
+}
+
+// ============================================================
+//  TREES (procedural — pack doesn't include them)
+// ============================================================
+const allTrees = [];
+
+function createTree(x, z, scale, type) {
+  const group = new THREE.Group();
+  const y = terrainHeight(x, z);
+  const barkMat = colorMat(0x6B4226, 0.9);
+
+  if (type === 'oak') {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5*scale,0.8*scale,5*scale,6), barkMat);
+    trunk.position.y = 2.5*scale; trunk.castShadow = true; group.add(trunk);
+    const leafMat = colorMat(0x355E00, 0.9);
+    const canopy = new THREE.Mesh(new THREE.IcosahedronGeometry(3.5*scale,1), leafMat);
+    canopy.position.y = 6.5*scale; canopy.scale.y = 0.65; canopy.castShadow = true; group.add(canopy);
+    for (let i = 0; i < 3; i++) {
+      const bump = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5*scale,0), leafMat);
+      const a = (i/3)*Math.PI*2+Math.random()*0.5;
+      bump.position.set(Math.cos(a)*2*scale, 5.5*scale+Math.random()*2, Math.sin(a)*2*scale);
+      bump.castShadow = true; group.add(bump);
+    }
+  } else if (type === 'willow') {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4*scale,0.7*scale,6*scale,6), barkMat);
+    trunk.position.y = 3*scale; trunk.castShadow = true; group.add(trunk);
+    const leafMat = colorMat(0x4A7A20, 0.9);
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(3*scale,6,4), leafMat);
+    canopy.position.y = 7*scale; canopy.scale.set(1,1.4,1); canopy.castShadow = true; group.add(canopy);
+    const vineMat = colorMat(0x3A6A10, 0.95);
+    for (let i = 0; i < 8; i++) {
+      const a = (i/8)*Math.PI*2;
+      const vine = new THREE.Mesh(new THREE.BoxGeometry(0.15,3*scale,0.15), vineMat);
+      vine.position.set(Math.cos(a)*2.5*scale, 4*scale, Math.sin(a)*2.5*scale); group.add(vine);
+    }
+  } else if (type === 'dead') {
+    const deadMat = colorMat(0x4A3520, 0.95);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2*scale,0.5*scale,5*scale,5), deadMat);
+    trunk.position.y = 2.5*scale; trunk.castShadow = true; group.add(trunk);
+    for (let i = 0; i < 4; i++) {
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.15,2.5*scale,4), deadMat);
+      const a = (i/4)*Math.PI*2;
+      branch.position.set(Math.cos(a)*0.8, 3.5*scale+i*0.5, Math.sin(a)*0.8);
+      branch.rotation.z = Math.cos(a)*0.6; branch.rotation.x = Math.sin(a)*0.6;
+      branch.castShadow = true; group.add(branch);
+    }
+  } else {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3*scale,0.5*scale,4*scale,6), barkMat);
+    trunk.position.y = 2*scale; trunk.castShadow = true; group.add(trunk);
+    const leafColor = [0x3A5F0B,0x4A6F1B,0x2D4A08][Math.floor(Math.random()*3)];
+    const leafMat = colorMat(leafColor, 0.9);
+    const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5*scale,0), leafMat);
+    c1.position.y = 5*scale; c1.scale.y = 0.6; c1.castShadow = true; group.add(c1);
+    const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8*scale,0), leafMat);
+    c2.position.y = 7*scale; c2.position.x = (Math.random()-0.5)*0.5; c2.scale.y = 0.7;
+    c2.castShadow = true; group.add(c2);
+  }
+
+  group.position.set(x, y, z);
+  const treeName = type === 'oak' ? 'Oak' : type === 'willow' ? 'Willow' : type === 'dead' ? 'Dead Tree' : 'Tree';
+  group.userData = { type: 'tree', treeType: type, interactable: true, name: treeName };
+  scene.add(group);
+  allTrees.push(group);
+  return group;
+}
+
+function populateTrees() {
+  const positions = [
+    {x:-35,z:5,t:'normal'},{x:-40,z:10,t:'oak'},{x:-38,z:-5,t:'normal'},
+    {x:-33,z:-12,t:'normal'},{x:-45,z:-8,t:'oak'},
+    {x:40,z:5,t:'normal'},{x:45,z:-5,t:'oak'},{x:43,z:10,t:'normal'},
+    {x:50,z:15,t:'normal'},{x:47,z:-15,t:'oak'},
+    {x:-10,z:-35,t:'normal'},{x:5,z:-40,t:'oak'},{x:-5,z:-45,t:'normal'},
+    {x:15,z:-40,t:'normal'},{x:-15,z:-43,t:'dead'},
+    {x:18,z:5,t:'willow'},{x:19,z:-20,t:'willow'},{x:16,z:25,t:'willow'},
+    {x:-10,z:35,t:'normal'},{x:10,z:40,t:'oak'},{x:-5,z:33,t:'normal'},
+    {x:5,z:45,t:'normal'},{x:-20,z:40,t:'oak'},
+    {x:-55,z:20,t:'normal'},{x:55,z:20,t:'normal'},
+    {x:-50,z:-35,t:'oak'},{x:53,z:-30,t:'normal'},
+    {x:-60,z:0,t:'normal'},{x:60,z:-10,t:'oak'},
+    {x:-30,z:25,t:'normal'},{x:35,z:30,t:'oak'},
+  ];
+  positions.forEach(p => createTree(p.x, p.z, 0.8 + Math.random() * 0.5, p.t));
+}
+
+// ============================================================
+//  ROCKS
+// ============================================================
+const allRocks = [];
+function populateRocks() {
+  const rockMat = makeMat(TEX.stone(1,1), { color: 0x888888 });
+  const positions = [
+    {x:-12,z:-8},{x:8,z:15},{x:-8,z:-25},{x:30,z:8},
+    {x:-18,z:22},{x:35,z:-25},{x:-45,z:15},{x:48,z:25},
+  ];
+  positions.forEach(r => {
+    const s = 0.5 + Math.random() * 1.5;
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), rockMat);
+    rock.position.set(r.x, terrainHeight(r.x,r.z)+s*0.4, r.z);
+    rock.rotation.set(Math.random(),Math.random(),Math.random());
+    rock.castShadow = true;
+    rock.userData = { type: 'rock', name: 'Rock', interactable: true };
+    scene.add(rock);
+    allRocks.push(rock);
+  });
+}
+
+// ============================================================
+//  FLOWERS
+// ============================================================
+function populateFlowers() {
+  const colors = [0xFFFF00,0xFF6600,0xFF0066,0x6666FF,0xFFFFFF];
+  for (let i = 0; i < 60; i++) {
+    const fx = (Math.random()-0.5)*120, fz = (Math.random()-0.5)*120;
+    if (Math.abs(fx - 22) < 8) continue;
+    const flower = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15,4,3),
+      colorMat(colors[Math.floor(Math.random()*colors.length)],0.9)
+    );
+    flower.position.set(fx, terrainHeight(fx,fz)+0.1, fz);
+    scene.add(flower);
+  }
+}
+
+// ============================================================
+//  FISHING SPOTS
+// ============================================================
+const fishSpots = [];
+function createFishingSpots() {
+  [{x:25,z:5},{x:20,z:-15},{x:23,z:18}].forEach(p => {
+    const spot = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const bubble = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12,4,3),
+        new THREE.MeshStandardMaterial({color:0xAADDFF,transparent:true,opacity:0.6})
+      );
+      bubble.position.set((Math.random()-0.5)*0.8, Math.random()*0.3, (Math.random()-0.5)*0.8);
+      spot.add(bubble);
+    }
+    spot.position.set(p.x, terrainHeight(p.x,p.z)-0.2, p.z);
+    spot.userData = { type: 'fishing_spot', name: 'Fishing Spot', interactable: true };
+    scene.add(spot);
+    fishSpots.push(spot);
+  });
+}
+
+// ============================================================
+//  MAID CAFÉ (custom built — pink box with neon)
+// ============================================================
+function createMaidCafe() {
+  const group = new THREE.Group();
+  const pinkMat = new THREE.MeshStandardMaterial({color:0xFF69B4, roughness:0.7});
+  const roofMat = new THREE.MeshStandardMaterial({color:0xFF1493, roughness:0.6});
+  const w=8, d=7, h=5;
+
+  // Walls
+  const bw = new THREE.Mesh(new THREE.BoxGeometry(w,h,0.6), pinkMat);
+  bw.position.set(0,h/2,-d/2); bw.castShadow=true; group.add(bw);
+  const lw = new THREE.Mesh(new THREE.BoxGeometry(0.6,h,d), pinkMat);
+  lw.position.set(-w/2,h/2,0); lw.castShadow=true; group.add(lw);
+  const rw = new THREE.Mesh(new THREE.BoxGeometry(0.6,h,d), pinkMat);
+  rw.position.set(w/2,h/2,0); rw.castShadow=true; group.add(rw);
+  // Front with door
+  const fl = new THREE.Mesh(new THREE.BoxGeometry(2.5,h,0.6), pinkMat);
+  fl.position.set(-w/2+1.25,h/2,d/2); fl.castShadow=true; group.add(fl);
+  const fr = new THREE.Mesh(new THREE.BoxGeometry(2.5,h,0.6), pinkMat);
+  fr.position.set(w/2-1.25,h/2,d/2); fr.castShadow=true; group.add(fr);
+  const ft = new THREE.Mesh(new THREE.BoxGeometry(3,2,0.6), pinkMat);
+  ft.position.set(0,h-1,d/2); ft.castShadow=true; group.add(ft);
+
+  // Roof
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w+1.5,0.3,d+1.5), roofMat);
+  roof.position.y = h; roof.castShadow=true; group.add(roof);
+
+  // Floor
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(w,0.2,d), colorMat(0xFFB6C1,0.7));
+  floor.position.y = 0.1; floor.receiveShadow=true; group.add(floor);
+
+  // Neon lights
+  [0xFF00FF,0xFF69B4,0xFFB6C1].forEach((c,i) => {
+    const light = new THREE.PointLight(c, 4, 18);
+    light.position.set(-2+i*2, 4, 3.8);
+    group.add(light);
+  });
+
+  // Glowing lanterns
+  for (const sx of [-3,3]) {
+    const lantern = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4,6,4),
+      new THREE.MeshStandardMaterial({color:0xFF69B4,emissive:0xFF1493,emissiveIntensity:0.5})
+    );
+    lantern.position.set(sx,4.5,3.8); group.add(lantern);
+  }
+
+  // Sign
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(4,1.2,0.15),
+    new THREE.MeshStandardMaterial({color:0xFFFFFF,emissive:0xFF69B4,emissiveIntensity:0.3,roughness:0.5})
+  );
+  sign.position.set(0,5.8,3.6); group.add(sign);
+
+  const x=-18, z=-22;
+  group.position.set(x, terrainHeight(x,z), z);
+  group.userData = { type: 'building', name: 'Maid Café ♡', interactable: true };
+  scene.add(group);
+  buildings.push(group);
+  return group;
+}
+
+// ============================================================
+//  NPC HUMANOID FACTORY
+// ============================================================
+function createHumanoid(opts={}) {
+  const group = new THREE.Group();
+  const skinMat = colorMat(opts.skin||0xDEB887,0.85);
+  const shirtMat = colorMat(opts.shirt||0x3366AA,0.8);
+  const pantsMat = colorMat(opts.pants||0x554433,0.85);
+  const hairMat = colorMat(opts.hair||0x332211,0.9);
+
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.8,0.7), skinMat);
+  head.position.y=3.1; head.castShadow=true; group.add(head);
+  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.75,0.35,0.75), hairMat);
+  hair.position.y=3.55; group.add(hair);
+  for (const s of [-0.15,0.15]) {
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.05), colorMat(0x111111));
+    eye.position.set(s,3.15,0.37); group.add(eye);
+  }
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.1,0.55), shirtMat);
+  torso.position.y=2.15; torso.castShadow=true; group.add(torso);
+  for (const s of [-0.6,0.6]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.3,1.0,0.3), shirtMat);
+    arm.position.set(s,2.1,0); arm.castShadow=true; group.add(arm);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.25,0.25), skinMat);
+    hand.position.set(s,1.5,0); group.add(hand);
+  }
+  for (const s of [-0.2,0.2]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35,1.1,0.4), pantsMat);
+    leg.position.set(s,1.05,0); leg.castShadow=true; group.add(leg);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.15,0.5), colorMat(0x333333,0.9));
+    foot.position.set(s,0.45,0.08); group.add(foot);
+  }
+  return group;
+}
+
+// ============================================================
+//  NPCs
+// ============================================================
+const npcs = [];
+function createNPCs() {
+  const h = terrainHeight;
+
+  const duke = createHumanoid({shirt:0x8B0000,pants:0x2F1500,hair:0x444444});
+  duke.position.set(0,0.4,0);
+  duke.userData = {
+    type:'npc',name:'Duke Horacio',interactable:true,overhead:'Duke Horacio',
+    dialog:["Welcome to my castle. Lumbridge has been my family's home for generations.",
+      "The goblins to the east have been causing trouble lately...",
+      "If you're new here, I'd suggest talking to the tutors around town."],
+  };
+  scene.add(duke); npcs.push(duke);
+
+  const hans = createHumanoid({shirt:0xBBAA77,pants:0x776644});
+  hans.position.set(5,h(5,8),8);
+  hans.userData = {
+    type:'npc',name:'Hans',interactable:true,overhead:'Hans',
+    dialog:["Hello there. I've been wandering around this castle for years.",
+      "I'm Hans. If you need to know how long you've been here, just ask."],
+    wander:{radius:10,speed:1.2,center:new THREE.Vector3(5,0,8)},
+  };
+  scene.add(hans); npcs.push(hans);
+
+  const noob = createHumanoid({shirt:0x00AA00,pants:0x996633,skin:0xFFCC99,hair:0xFF8800});
+  noob.position.set(-8,h(-8,15),15);
+  noob.userData = {
+    type:'npc',name:'L0nely_N00b',interactable:true,overhead:'L0nely_N00b',
+    chatMessages:["buying gf 10k","anyone selling gf?","buying gf 10k plz","will someone be my gf","buying gf","10k for gf"],
+    chatInterval:8000,
+    dialog:["hey bro u kno where i can buy a gf??","ive been trying for like 3 hours",
+      "someone told me to go to GE but idk where that is"],
+  };
+  scene.add(noob); npcs.push(noob);
+
+  // Maid NPC
+  const maid = createHumanoid({shirt:0x111111,pants:0xFFFFFF,skin:0xFFE0BD,hair:0x222222});
+  const apron = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.8,0.1), colorMat(0xFFFFFF,0.7));
+  apron.position.set(0,1.9,0.35); maid.add(apron);
+  const headband = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.15,0.3), colorMat(0xFFFFFF,0.7));
+  headband.position.set(0,3.65,0); maid.add(headband);
+  maid.position.set(-18,h(-18,-18),-18);
+  maid.userData = {
+    type:'npc',name:'Maid Sakura',interactable:true,overhead:'Maid Sakura ♡',
+    dialog:["Welcome home, Master! ♡","Would you like some tea? Or perhaps... cake? ♡",
+      "Nya~ Please come in and make yourself comfortable!",
+      "Today's special: Omurice with a ketchup heart ♡"],
+  };
+  scene.add(maid); npcs.push(maid);
+
+  // Shopkeeper
+  const shopkeep = createHumanoid({shirt:0xAA8833,pants:0x553311,hair:0x666666});
+  shopkeep.position.set(-15,h(-15,12),12);
+  shopkeep.userData = {
+    type:'npc',name:'Shopkeeper',interactable:true,overhead:'Shopkeeper',
+    dialog:["Welcome to the Lumbridge General Store!","Can I help you find anything?",
+      "We buy and sell all sorts of things."],
+  };
+  scene.add(shopkeep); npcs.push(shopkeep);
+
+  // Father Aereck at church
+  const priest = createHumanoid({shirt:0x222222,pants:0x111111,hair:0xAAAAAA});
+  priest.position.set(12,h(12,-18),-18);
+  priest.userData = {
+    type:'npc',name:'Father Aereck',interactable:true,overhead:'Father Aereck',
+    dialog:["Welcome to the church of Lumbridge.","May Saradomin be with you.",
+      "If you need to restore your prayer points, pray at the altar."],
+  };
+  scene.add(priest); npcs.push(priest);
+}
+
+// ============================================================
+//  ENEMIES
+// ============================================================
+const enemies = [];
+
+function createChicken() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5,5,4), colorMat(0xFFFFEE,0.9));
+  body.scale.set(1,0.8,1.2); body.position.y=0.6; body.castShadow=true; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25,4,3), colorMat(0xFFFFEE,0.9));
+  head.position.set(0,1.1,0.3); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08,0.2,4), colorMat(0xFFAA00,0.8));
+  beak.rotation.x=-Math.PI/2; beak.position.set(0,1.05,0.55); g.add(beak);
+  const comb = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.2,0.15), colorMat(0xFF0000,0.8));
+  comb.position.set(0,1.3,0.3); g.add(comb);
+  for (const sx of [-0.15,0.15]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.35,4), colorMat(0xFFAA00,0.8));
+    leg.position.set(sx,0.2,0); g.add(leg);
+  }
+  return g;
+}
+
+function createGoblin() {
+  const g = new THREE.Group();
+  const skinMat = colorMat(0x5A8A3A,0.85);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.7,0.7), skinMat);
+  head.position.y=2.4; head.castShadow=true; g.add(head);
+  for (const s of [-0.5,0.5]) {
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.3,4), skinMat);
+    ear.rotation.z = s>0?-0.5:0.5; ear.position.set(s,2.5,0); g.add(ear);
+  }
+  for (const s of [-0.15,0.15]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08,4,3), colorMat(0xFFFF00,0.5));
+    eye.position.set(s,2.45,0.37); g.add(eye);
+  }
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.8,0.45), colorMat(0x8B4513,0.85));
+  torso.position.y=1.7; torso.castShadow=true; g.add(torso);
+  for (const s of [-0.5,0.5]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.7,0.25), skinMat);
+    arm.position.set(s,1.7,0); arm.castShadow=true; g.add(arm);
+  }
+  for (const s of [-0.15,0.15]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), colorMat(0x8B4513,0.85));
+    leg.position.set(s,0.85,0); leg.castShadow=true; g.add(leg);
+  }
+  // Spear
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.5,4), colorMat(0x6B4226,0.9));
+  shaft.position.set(0.6,1.8,0.2); shaft.rotation.z=0.15; g.add(shaft);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08,0.3,4), colorMat(0xAAAAAA,0.4,0.6));
+  tip.position.set(0.65,3.15,0.2); g.add(tip);
+  return g;
+}
+
+function spawnEnemies() {
+  const h = terrainHeight;
+  [{x:-10,z:8},{x:-12,z:6},{x:-8,z:10},{x:-14,z:9},{x:-11,z:12}].forEach((p,i) => {
+    const chicken = createChicken();
+    chicken.position.set(p.x,h(p.x,p.z),p.z);
+    chicken.userData = {
+      type:'enemy',enemyType:'chicken',name:'Chicken',
+      interactable:true,overhead:'Chicken (Level 1)',
+      hp:3,maxHp:3,level:1,
+      respawnPos:new THREE.Vector3(p.x,h(p.x,p.z),p.z),
+      wander:{radius:5,speed:0.6,center:new THREE.Vector3(p.x,0,p.z)},
+      drops:[{name:'Raw Chicken',icon:'🍗',chance:1},{name:'Feather',icon:'🪶',chance:1},{name:'Bones',icon:'🦴',chance:1}],
+    };
+    scene.add(chicken); enemies.push(chicken);
+  });
+
+  [{x:38,z:-5},{x:42,z:-8},{x:36,z:-3},{x:44,z:-10},{x:40,z:-12}].forEach((p,i) => {
+    const goblin = createGoblin();
+    goblin.position.set(p.x,h(p.x,p.z),p.z);
+    goblin.userData = {
+      type:'enemy',enemyType:'goblin',name:'Goblin',
+      interactable:true,overhead:'Goblin (Level 2)',
+      hp:5,maxHp:5,level:2,
+      respawnPos:new THREE.Vector3(p.x,h(p.x,p.z),p.z),
+      wander:{radius:6,speed:0.8,center:new THREE.Vector3(p.x,0,p.z)},
+      drops:[{name:'Goblin Mail',icon:'📧',chance:0.3},{name:'Coins',icon:'🪙',chance:1},{name:'Bones',icon:'🦴',chance:1}],
+    };
+    scene.add(goblin); enemies.push(goblin);
+  });
+}
+
+// ============================================================
+//  PLAYER
+// ============================================================
+class Player {
+  constructor() {
+    this.group = new THREE.Group();
+    this.group.name = 'player';
+    this.stats = {
+      hp:10,maxHp:10,prayer:1,maxPrayer:1,runEnergy:100,
+      attack:1,strength:1,defence:1,hitpoints:10,
+      mining:1,woodcutting:1,fishing:1,cooking:1,firemaking:1,
+    };
+    this.xp = {attack:0,strength:0,defence:0,hitpoints:1154,mining:0,woodcutting:0,fishing:0,cooking:0,firemaking:0};
+    this.inventory = new Array(28).fill(null);
+    this.inventory[0] = {name:'Bronze Sword',icon:'⚔️',count:1,type:'weapon',attack:2};
+    this.inventory[1] = {name:'Bronze Axe',icon:'🪓',count:1,type:'tool'};
+    this.inventory[2] = {name:'Bronze Pickaxe',icon:'⛏️',count:1,type:'tool'};
+    this.inventory[3] = {name:'Net',icon:'🥅',count:1,type:'tool'};
+    this.inventory[4] = {name:'Tinderbox',icon:'🔥',count:1,type:'tool'};
+    this.inventory[5] = {name:'Coins',icon:'🪙',count:25,type:'currency'};
+    this.moveTarget = null; this.moveSpeed = 6; this.isMoving = false;
+    this.combatTarget = null; this.combatCooldown = 0; this.attackSpeed = 2.4;
+    this.skillingTarget = null; this.skillingType = null; this.skillingCooldown = 0;
+    this._buildModel();
+    this.marker = this._createMarker();
+    scene.add(this.marker); this.marker.visible = false;
+    scene.add(this.group);
+  }
+  _buildModel() {
+    const sk=colorMat(0xDEB887,0.85),sh=colorMat(0x336699,0.8),pa=colorMat(0x554433,0.85);
+    const ha=colorMat(0x332211,0.9),bo=colorMat(0x3A2211,0.9);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.8,0.7),sk);head.position.y=3.1;head.castShadow=true;this.group.add(head);
+    const hair=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.4,0.75),ha);hair.position.y=3.6;this.group.add(hair);
+    for(const s of[-0.15,0.15]){const e=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.05),colorMat(0x111111));e.position.set(s,3.15,0.37);this.group.add(e);}
+    const torso=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.1,0.55),sh);torso.position.y=2.15;torso.castShadow=true;this.group.add(torso);
+    this.leftArm=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.0,0.3),sh);this.leftArm.position.set(-0.6,2.1,0);this.leftArm.castShadow=true;this.group.add(this.leftArm);
+    this.rightArm=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.0,0.3),sh);this.rightArm.position.set(0.6,2.1,0);this.rightArm.castShadow=true;this.group.add(this.rightArm);
+    for(const s of[-0.6,0.6]){const h=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.25,0.25),sk);h.position.set(s,1.5,0);this.group.add(h);}
+    this.leftLeg=new THREE.Mesh(new THREE.BoxGeometry(0.35,1.0,0.4),pa);this.leftLeg.position.set(-0.2,1.05,0);this.leftLeg.castShadow=true;this.group.add(this.leftLeg);
+    this.rightLeg=new THREE.Mesh(new THREE.BoxGeometry(0.35,1.0,0.4),pa);this.rightLeg.position.set(0.2,1.05,0);this.rightLeg.castShadow=true;this.group.add(this.rightLeg);
+    for(const s of[-0.2,0.2]){const b=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.2,0.5),bo);b.position.set(s,0.5,0.05);this.group.add(b);}
+    this.group.position.set(0,0,15);
+  }
+  _createMarker() {
+    const g=new THREE.Group();
+    const m=new THREE.MeshBasicMaterial({color:0xFFFF00,transparent:true,opacity:0.8});
+    for(let i=0;i<2;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.05,1.2),m);b.rotation.y=(i===0)?Math.PI/4:-Math.PI/4;g.add(b);}
+    return g;
+  }
+  setMoveTarget(point){this.moveTarget=point.clone();this.isMoving=true;this.combatTarget=null;this.skillingTarget=null;this.skillingType=null;this.marker.position.copy(point);this.marker.position.y+=0.15;this.marker.visible=true;}
+  setCombatTarget(e){this.combatTarget=e;this.skillingTarget=null;this.skillingType=null;}
+  setSkillingTarget(t,type){this.skillingTarget=t;this.skillingType=type;this.combatTarget=null;this.skillingCooldown=0;}
+  update(delta,time,cb={}) {
+    const h=terrainHeight;
+    if(this.isMoving){const w=Math.sin(time*8)*0.4;this.leftLeg.rotation.x=w;this.rightLeg.rotation.x=-w;this.leftArm.rotation.x=-w*0.6;this.rightArm.rotation.x=w*0.6;}
+    else{this.leftLeg.rotation.x=0;this.rightLeg.rotation.x=0;this.leftArm.rotation.x=0;this.rightArm.rotation.x=0;}
+    if(this.moveTarget){const dx=this.moveTarget.x-this.group.position.x,dz=this.moveTarget.z-this.group.position.z,dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist>0.3){const step=Math.min(this.moveSpeed*delta,dist);this.group.position.x+=dx/dist*step;this.group.position.z+=dz/dist*step;this.group.position.y=h(this.group.position.x,this.group.position.z);this.group.rotation.y=Math.atan2(dx,dz);this.isMoving=true;}
+      else{this.moveTarget=null;this.isMoving=false;this.marker.visible=false;}}
+    if(this.combatTarget&&!this.combatTarget.userData.isDead){const e=this.combatTarget,dx=e.position.x-this.group.position.x,dz=e.position.z-this.group.position.z,dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist>2.5){const step=this.moveSpeed*delta;this.group.position.x+=dx/dist*step;this.group.position.z+=dz/dist*step;this.group.position.y=h(this.group.position.x,this.group.position.z);this.group.rotation.y=Math.atan2(dx,dz);this.isMoving=true;this.moveTarget=null;}
+      else{this.isMoving=false;this.group.rotation.y=Math.atan2(dx,dz);this.combatCooldown-=delta;
+        if(this.combatCooldown<=0){this.combatCooldown=this.attackSpeed;const maxHit=Math.max(1,this.stats.strength);const hit=Math.floor(Math.random()*(maxHit+1));e.userData.hp-=hit;
+          this.rightArm.rotation.x=-1.2;setTimeout(()=>{if(this.rightArm)this.rightArm.rotation.x=0;},200);
+          if(cb.onHit)cb.onHit(e,hit);
+          if(e.userData.hp<=0){e.userData.isDead=true;e.visible=false;this.combatTarget=null;if(cb.onKill)cb.onKill(e);
+            setTimeout(()=>{e.userData.hp=e.userData.maxHp;e.userData.isDead=false;e.visible=true;if(e.userData.respawnPos)e.position.copy(e.userData.respawnPos);},10000);}}}}
+    else if(this.combatTarget&&this.combatTarget.userData.isDead)this.combatTarget=null;
+    if(this.skillingTarget){const t=this.skillingTarget,dx=t.position.x-this.group.position.x,dz=t.position.z-this.group.position.z,dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist>3){const step=this.moveSpeed*delta;this.group.position.x+=dx/dist*step;this.group.position.z+=dz/dist*step;this.group.position.y=h(this.group.position.x,this.group.position.z);this.group.rotation.y=Math.atan2(dx,dz);this.isMoving=true;}
+      else{this.isMoving=false;this.group.rotation.y=Math.atan2(dx,dz);this.skillingCooldown-=delta;
+        if(this.skillingCooldown<=0){this.skillingCooldown=3+Math.random()*2;this.rightArm.rotation.x=-0.8;setTimeout(()=>{if(this.rightArm)this.rightArm.rotation.x=0;},300);
+          if(cb.onSkill)cb.onSkill(this.skillingType,t);}}}
+  }
+  addItem(item){if(item.count){for(let i=0;i<28;i++){if(this.inventory[i]&&this.inventory[i].name===item.name){this.inventory[i].count+=item.count;return true;}}}
+    for(let i=0;i<28;i++){if(!this.inventory[i]){this.inventory[i]={...item,count:item.count||1};return true;}}return false;}
+  hasItem(name){return this.inventory.some(i=>i&&i.name===name);}
+  addXP(skill,amount){this.xp[skill]=(this.xp[skill]||0)+amount;const nl=this.xpToLevel(this.xp[skill]);
+    if(nl>this.stats[skill]){this.stats[skill]=nl;if(skill==='hitpoints'){this.stats.maxHp=nl;this.stats.hp=nl;}return{levelUp:true,skill,level:nl};}return{levelUp:false,amount};}
+  xpToLevel(xp){let level=1,total=0;for(let l=1;l<99;l++){total+=Math.floor(l+300*Math.pow(2,l/7))/4;if(xp>=total)level=l+1;else break;}return Math.min(level,99);}
+}
+
+// ============================================================
+//  UI
+// ============================================================
+class GameUI {
+  constructor(player){this.player=player;this.activeTab='all';this.activePanel='inventory';this.messages=[];
+    this._setupChatTabs();this._setupPanelTabs();this._setupInventory();this._setupSkills();this._setupChatInput();}
+  _setupChatTabs(){document.querySelectorAll('.chat-tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');this.activeTab=t.dataset.tab;this._renderMessages();});});}
+  _setupPanelTabs(){document.querySelectorAll('.panel-tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.panel-tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));t.classList.add('active');this.activePanel=t.dataset.panel;document.getElementById(`${this.activePanel}-panel`).classList.add('active');if(this.activePanel==='inventory')this.updateInventory();if(this.activePanel==='skills')this.updateSkills();});});}
+  _setupChatInput(){const input=document.getElementById('chat-input');input.addEventListener('keydown',e=>{if(e.key==='Enter'&&input.value.trim()){this.addMessage('You',input.value.trim(),'public');input.value='';input.blur();}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.activeElement!==input)input.focus();});}
+  _setupInventory(){const grid=document.getElementById('inventory-grid');grid.innerHTML='';
+    for(let i=0;i<28;i++){const slot=document.createElement('div');slot.className='inv-slot';slot.dataset.index=i;
+      slot.addEventListener('contextmenu',e=>{e.preventDefault();const item=this.player.inventory[i];if(item)this.showContextMenu(e.clientX,e.clientY,[
+        {label:`${item.icon} ${item.name}`,action:null,highlight:true},{label:'Use',action:()=>this.useItem(i)},{label:'Drop',action:()=>this.dropItem(i)},
+        {label:'Examine',action:()=>this.addMessage('',`${item.name}: A useful item.`,'game')}]);});
+      grid.appendChild(slot);}this.updateInventory();}
+  _setupSkills(){this.updateSkills();}
+  addMessage(sender,text,type='game'){this.messages.push({sender,text,type,time:Date.now()});if(this.messages.length>200)this.messages.shift();this._renderMessages();}
+  _renderMessages(){const c=document.getElementById('chat-messages');const f=this.activeTab==='all'?this.messages:this.messages.filter(m=>m.type===this.activeTab);
+    c.innerHTML=f.slice(-50).map(m=>{const p=m.sender?`<b>${m.sender}:</b> `:'';return`<div class="msg msg-${m.type}">${p}${m.text}</div>`;}).join('');c.scrollTop=c.scrollHeight;}
+  updateInventory(){document.querySelectorAll('.inv-slot').forEach((slot,i)=>{const item=this.player.inventory[i];
+    if(item){slot.innerHTML=`<span style="font-size:20px">${item.icon}</span>`;if(item.count>1)slot.innerHTML+=`<span class="item-count">${item.count>=1000?Math.floor(item.count/1000)+'k':item.count}</span>`;slot.title=item.name;}
+    else{slot.innerHTML='';slot.title='';}});}
+  updateSkills(){const list=document.getElementById('skills-list');
+    const skills=[{name:'Attack',key:'attack',icon:'⚔️'},{name:'Strength',key:'strength',icon:'💪'},{name:'Defence',key:'defence',icon:'🛡️'},{name:'Hitpoints',key:'hitpoints',icon:'❤️'},
+      {name:'Mining',key:'mining',icon:'⛏️'},{name:'Woodcutting',key:'woodcutting',icon:'🪓'},{name:'Fishing',key:'fishing',icon:'🐟'},{name:'Cooking',key:'cooking',icon:'🍳'}];
+    list.innerHTML=skills.map(s=>{const lv=this.player.stats[s.key]||1;const xp=this.player.xp[s.key]||0;
+      return`<div class="skill-entry" title="${s.name}: ${xp} XP"><span class="skill-icon">${s.icon}</span><span style="flex:1;font-size:9px">${s.name}</span><span class="skill-level">${lv}</span></div>`;}).join('');}
+  updateOrbs(){const p=this.player.stats;document.getElementById('hp-text').textContent=p.hp;document.querySelector('.hp-fill').style.height=`${(p.hp/p.maxHp)*100}%`;
+    document.getElementById('prayer-text').textContent=p.prayer;document.querySelector('.prayer-fill').style.height=`${(p.prayer/p.maxPrayer)*100}%`;
+    document.getElementById('run-text').textContent=Math.floor(p.runEnergy);document.querySelector('.run-fill').style.height=`${p.runEnergy}%`;}
+  showXPDrop(skill,amount){const c=document.getElementById('xp-drops');const icons={attack:'⚔️',strength:'💪',defence:'🛡️',hitpoints:'❤️',mining:'⛏️',woodcutting:'🪓',fishing:'🐟',cooking:'🍳'};
+    const d=document.createElement('div');d.className='xp-drop';d.textContent=`${icons[skill]||'✨'} +${amount} XP`;c.appendChild(d);setTimeout(()=>d.remove(),2000);}
+  showContextMenu(x,y,options){const menu=document.getElementById('context-menu');const list=document.getElementById('context-options');list.innerHTML='';
+    options.forEach(opt=>{const li=document.createElement('li');li.textContent=opt.label;if(opt.highlight)li.style.color='#ff0';
+      if(opt.action)li.addEventListener('click',()=>{opt.action();menu.classList.add('hidden');});list.appendChild(li);});
+    menu.style.left=x+'px';menu.style.top=y+'px';menu.classList.remove('hidden');}
+  hideContextMenu(){document.getElementById('context-menu').classList.add('hidden');}
+  showNPCDialog(name,lines){const dialog=document.getElementById('npc-dialog'),nameEl=document.getElementById('npc-dialog-name'),
+    textEl=document.getElementById('npc-dialog-text'),optsEl=document.getElementById('npc-dialog-options');
+    let idx=0;nameEl.textContent=name;textEl.textContent=lines[idx];optsEl.innerHTML='';
+    const next=document.createElement('button');next.textContent='Continue';next.addEventListener('click',()=>{idx++;if(idx<lines.length)textEl.textContent=lines[idx];else dialog.classList.add('hidden');});optsEl.appendChild(next);
+    const close=document.createElement('button');close.textContent='Close';close.addEventListener('click',()=>dialog.classList.add('hidden'));optsEl.appendChild(close);
+    dialog.classList.remove('hidden');}
+  useItem(index){const item=this.player.inventory[index];if(!item)return;
+    if(item.name==='Raw Chicken'||item.name==='Raw Shrimp'){item.name=item.name.replace('Raw ','Cooked ');item.icon='🍖';this.addMessage('',`You cook the ${item.name}.`,'game');
+      const r=this.player.addXP('cooking',30);this.showXPDrop('cooking',30);if(r.levelUp)this.addMessage('',`🎉 Your Cooking level is now ${r.level}!`,'game');}
+    else if(item.name.startsWith('Cooked')){const heal=3;this.player.stats.hp=Math.min(this.player.stats.maxHp,this.player.stats.hp+heal);
+      this.addMessage('',`You eat the ${item.name}. It heals ${heal} hitpoints.`,'game');item.count--;if(item.count<=0)this.player.inventory[index]=null;}
+    this.updateInventory();this.updateOrbs();}
+  dropItem(index){const item=this.player.inventory[index];if(item){this.addMessage('',`You drop the ${item.name}.`,'game');this.player.inventory[index]=null;this.updateInventory();}}
+  updateMinimap(player,npcs,enemies){const cv=document.getElementById('minimap'),ctx=cv.getContext('2d'),w=cv.width,hh=cv.height;
+    ctx.fillStyle='#0a1a0a';ctx.fillRect(0,0,w,hh);const scale=1.2;const cx=player.group.position.x,cz=player.group.position.z;
+    ctx.fillStyle='#2a4a1a';ctx.fillRect(0,0,w,hh);
+    ctx.fillStyle='#224488';const rx=(22-cx)*scale+w/2;ctx.fillRect(rx-5,0,10,hh);
+    // Buildings as brown dots
+    buildings.forEach(b=>{ctx.fillStyle=b.userData.name==='Maid Café ♡'?'#FF69B4':'#554433';
+      const bx=(b.position.x-cx)*scale+w/2,bz=(b.position.z-cz)*scale+hh/2;
+      if(bx>0&&bx<w&&bz>0&&bz<hh)ctx.fillRect(bx-4,bz-4,8,8);});
+    ctx.fillStyle='#FFFF00';npcs.forEach(n=>{if(n.userData.isDead)return;const nx=(n.position.x-cx)*scale+w/2,nz=(n.position.z-cz)*scale+hh/2;
+      if(nx>0&&nx<w&&nz>0&&nz<hh)ctx.fillRect(nx-1,nz-1,3,3);});
+    ctx.fillStyle='#FF0000';enemies.forEach(e=>{if(e.userData.isDead)return;const ex=(e.position.x-cx)*scale+w/2,ez=(e.position.z-cz)*scale+hh/2;
+      if(ex>0&&ex<w&&ez>0&&ez<hh)ctx.fillRect(ex-1,ez-1,3,3);});
+    ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.arc(w/2,hh/2,3,0,Math.PI*2);ctx.fill();
+    ctx.globalCompositeOperation='destination-in';ctx.beginPath();ctx.arc(w/2,hh/2,w/2,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';}
+}
+
+// ============================================================
+//  OVERHEAD LABELS & HITSPLATS
+// ============================================================
+const labelContainer = document.createElement('div');
+labelContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+document.body.appendChild(labelContainer);
+const labels = new Map();
+const hitsplats = [];
+
+function updateLabels() {
+  [...npcs,...enemies].forEach(npc => {
+    if (npc.userData.isDead || !npc.visible) { if (labels.has(npc)) labels.get(npc).style.display = 'none'; return; }
+    if (!labels.has(npc)) {
+      const l = document.createElement('div');
+      l.style.cssText = 'position:absolute;color:#ff0;font-size:11px;font-weight:bold;text-shadow:1px 1px 2px #000;white-space:nowrap;text-align:center;transform:translate(-50%,-100%);pointer-events:none;';
+      labelContainer.appendChild(l); labels.set(npc, l);
+    }
+    const l = labels.get(npc);
+    const pos = new THREE.Vector3().copy(npc.position);
+    pos.y += (npc.userData.type === 'enemy' && npc.userData.enemyType === 'chicken') ? 2 : 4.2;
+    pos.project(camera);
+    if (pos.z > 1 || pos.z < -1) { l.style.display = 'none'; return; }
+    l.style.display = 'block';
+    l.style.left = `${(pos.x*0.5+0.5)*window.innerWidth}px`;
+    l.style.top = `${(-pos.y*0.5+0.5)*window.innerHeight}px`;
+    let text = npc.userData.overhead || npc.userData.name;
+    if (npc.userData.type === 'enemy' && npc.userData.hp < npc.userData.maxHp) {
+      const pct = Math.max(0, npc.userData.hp / npc.userData.maxHp * 100);
+      const col = pct > 50 ? '#0f0' : pct > 25 ? '#ff0' : '#f00';
+      text += `<br><div style="width:40px;height:4px;background:#300;margin:2px auto;"><div style="width:${pct}%;height:100%;background:${col};"></div></div>`;
+    }
+    l.innerHTML = text;
+    l.style.color = npc.userData.type === 'enemy' ? '#ff0' : '#00ffff';
+  });
+}
+
+function showHitsplat(target, damage) {
+  const div = document.createElement('div');
+  div.style.cssText = `position:absolute;pointer-events:none;font-weight:bold;font-size:14px;z-index:6;
+    background:${damage > 0 ? '#c00' : '#004'};color:#fff;border-radius:50%;width:20px;height:20px;
+    display:flex;align-items:center;justify-content:center;text-shadow:1px 1px 0 #000;`;
+  div.textContent = damage;
+  labelContainer.appendChild(div);
+  hitsplats.push({ div, target, startTime: performance.now(), duration: 1500 });
+}
+
+function updateHitsplats() {
+  const now = performance.now();
+  for (let i = hitsplats.length - 1; i >= 0; i--) {
+    const hs = hitsplats[i];
+    const elapsed = now - hs.startTime;
+    if (elapsed > hs.duration) { hs.div.remove(); hitsplats.splice(i, 1); continue; }
+    const pos = new THREE.Vector3().copy(hs.target.position);
+    pos.y += 3 - (elapsed / hs.duration) * 0.5;
+    pos.project(camera);
+    hs.div.style.left = `${(pos.x*0.5+0.5)*window.innerWidth - 10}px`;
+    hs.div.style.top = `${(-pos.y*0.5+0.5)*window.innerHeight}px`;
+    hs.div.style.opacity = 1 - (elapsed / hs.duration) * 0.5;
+  }
+}
+
+// ============================================================
+//  NPC UPDATE
+// ============================================================
+function updateNPCsBehavior(time, delta, chatFn) {
+  [...npcs,...enemies].forEach(npc => {
+    const w = npc.userData.wander;
+    if (!w || npc.userData.isDead) return;
+    if (!npc.userData._wanderTarget) { npc.userData._wanderTarget = new THREE.Vector3(); npc.userData._wanderTimer = 0; }
+    npc.userData._wanderTimer -= delta;
+    if (npc.userData._wanderTimer <= 0) {
+      const a = Math.random() * Math.PI * 2, d = Math.random() * w.radius;
+      npc.userData._wanderTarget.set(w.center.x + Math.cos(a)*d, 0, w.center.z + Math.sin(a)*d);
+      npc.userData._wanderTimer = 3 + Math.random() * 5;
+    }
+    const t = npc.userData._wanderTarget;
+    const dx = t.x - npc.position.x, dz = t.z - npc.position.z, dist = Math.sqrt(dx*dx+dz*dz);
+    if (dist > 0.5) {
+      const speed = w.speed * delta;
+      npc.position.x += (dx/dist)*speed; npc.position.z += (dz/dist)*speed;
+      npc.position.y = terrainHeight(npc.position.x, npc.position.z);
+      npc.rotation.y = Math.atan2(dx, dz);
+    }
+  });
+  npcs.forEach(npc => {
+    if (npc.userData.chatMessages && chatFn) {
+      if (!npc.userData._lastChat) npc.userData._lastChat = 0;
+      const interval = npc.userData.chatInterval || 10000;
+      if (time * 1000 - npc.userData._lastChat > interval) {
+        const msgs = npc.userData.chatMessages;
+        chatFn(npc.userData.name, msgs[Math.floor(Math.random()*msgs.length)], 'public');
+        npc.userData._lastChat = time * 1000;
+      }
+    }
+  });
+}
+
+// ============================================================
+//  INPUT
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const keys = {};
+let player, ui;
+
+document.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (['w','a','s','d'].includes(e.key.toLowerCase()) && document.activeElement.id !== 'chat-input') e.preventDefault();
+});
+document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+function findInteractableParent(obj) {
+  let cur = obj;
+  while (cur) { if (cur.userData && cur.userData.interactable) return cur; cur = cur.parent; }
+  return null;
+}
+
+canvas.addEventListener('click', e => {
+  if (!player || !ui) return;
+  ui.hideContextMenu();
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const allMeshes = [];
+  scene.traverse(obj => { if (obj.isMesh && obj.visible) allMeshes.push(obj); });
+  const intersects = raycaster.intersectObjects(allMeshes, false);
+  if (!intersects.length) return;
+  const hit = intersects[0];
+  const hitObj = findInteractableParent(hit.object);
+
+  if (hitObj && hitObj.userData.type === 'enemy' && !hitObj.userData.isDead) {
+    player.setCombatTarget(hitObj);
+    ui.addMessage('', `You attack the ${hitObj.userData.name}.`, 'game');
+  } else if (hitObj && hitObj.userData.type === 'npc') {
+    player.setMoveTarget(hitObj.position.clone());
+    setTimeout(() => { if (hitObj.userData.dialog) ui.showNPCDialog(hitObj.userData.name, hitObj.userData.dialog); }, 500);
+  } else if (hitObj && hitObj.userData.type === 'tree') {
+    if (player.hasItem('Bronze Axe')) { player.setSkillingTarget(hitObj, 'woodcutting'); ui.addMessage('', `You swing your axe at the ${hitObj.userData.name}.`, 'game'); }
+    else ui.addMessage('', 'You need an axe to chop trees.', 'game');
+  } else if (hitObj && hitObj.userData.type === 'rock') {
+    if (player.hasItem('Bronze Pickaxe')) { player.setSkillingTarget(hitObj, 'mining'); ui.addMessage('', 'You swing your pickaxe at the rock.', 'game'); }
+    else ui.addMessage('', 'You need a pickaxe to mine rocks.', 'game');
+  } else if (hitObj && hitObj.userData.type === 'fishing_spot') {
+    if (player.hasItem('Net')) { player.setSkillingTarget(hitObj, 'fishing'); ui.addMessage('', 'You cast your net into the water.', 'game'); }
+    else ui.addMessage('', 'You need a net to fish here.', 'game');
+  } else {
+    player.setMoveTarget(hit.point);
+  }
+});
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (!player || !ui) return;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const allMeshes = [];
+  scene.traverse(obj => { if (obj.isMesh && obj.visible) allMeshes.push(obj); });
+  const intersects = raycaster.intersectObjects(allMeshes, false);
+  if (!intersects.length) return;
+  const hitObj = findInteractableParent(intersects[0].object);
+  if (!hitObj) {
+    ui.showContextMenu(e.clientX, e.clientY, [
+      { label: 'Walk here', action: () => player.setMoveTarget(intersects[0].point) },
+      { label: 'Cancel', action: () => {} },
+    ]);
+    return;
+  }
+  const options = [{ label: hitObj.userData.overhead || hitObj.userData.name, action: null, highlight: true }];
+  if (hitObj.userData.type === 'npc') {
+    options.push({ label: 'Talk-to', action: () => { player.setMoveTarget(hitObj.position.clone()); setTimeout(() => { if (hitObj.userData.dialog) ui.showNPCDialog(hitObj.userData.name, hitObj.userData.dialog); }, 500); }});
+    options.push({ label: 'Examine', action: () => ui.addMessage('', `${hitObj.userData.name}: A local of Lumbridge.`, 'game') });
+  } else if (hitObj.userData.type === 'enemy') {
+    options.push({ label: 'Attack', action: () => { player.setCombatTarget(hitObj); ui.addMessage('', `You attack the ${hitObj.userData.name}.`, 'game'); }});
+    options.push({ label: 'Examine', action: () => ui.addMessage('', hitObj.userData.overhead || hitObj.userData.name, 'game') });
+  } else if (hitObj.userData.type === 'tree') {
+    options.push({ label: 'Chop down', action: () => { if (player.hasItem('Bronze Axe')) { player.setSkillingTarget(hitObj, 'woodcutting'); ui.addMessage('', `You swing your axe at the ${hitObj.userData.name}.`, 'game'); } else ui.addMessage('', 'You need an axe to chop trees.', 'game'); }});
+  } else if (hitObj.userData.type === 'rock') {
+    options.push({ label: 'Mine', action: () => { if (player.hasItem('Bronze Pickaxe')) { player.setSkillingTarget(hitObj, 'mining'); ui.addMessage('', 'You swing your pickaxe at the rock.', 'game'); } else ui.addMessage('', 'You need a pickaxe to mine rocks.', 'game'); }});
+  } else if (hitObj.userData.type === 'fishing_spot') {
+    options.push({ label: 'Net', action: () => { if (player.hasItem('Net')) { player.setSkillingTarget(hitObj, 'fishing'); ui.addMessage('', 'You cast your net into the water.', 'game'); } else ui.addMessage('', 'You need a net to fish here.', 'game'); }});
+  } else if (hitObj.userData.type === 'building') {
+    options.push({ label: 'Enter', action: () => player.setMoveTarget(hitObj.position.clone()) });
+    options.push({ label: 'Examine', action: () => ui.addMessage('', hitObj.userData.name, 'game') });
+  }
+  options.push({ label: 'Walk here', action: () => player.setMoveTarget(intersects[0].point) });
+  options.push({ label: 'Cancel', action: () => {} });
+  ui.showContextMenu(e.clientX, e.clientY, options);
+});
+
+document.addEventListener('click', e => { if (!e.target.closest('#context-menu') && ui) ui.hideContextMenu(); });
+
+canvas.addEventListener('wheel', e => {
+  camState.distance += e.deltaY * 0.03;
+  camState.distance = THREE.MathUtils.clamp(camState.distance, camState.minDist, camState.maxDist);
+});
+
+// ============================================================
+//  BUILD WORLD
+// ============================================================
+async function buildWorld() {
+  loadingStatus.textContent = 'Creating terrain...';
+  createTerrain();
+
+  loadingStatus.textContent = 'Loading 3D models...';
+
+  // Load all building models in parallel
+  const modelDefs = [
+    { path: 'buildings/green/building_castle_green.gltf', name: 'Castle' },
+    { path: 'buildings/green/building_church_green.gltf', name: 'Church' },
+    { path: 'buildings/green/building_market_green.gltf', name: 'General Store' },
+    { path: 'buildings/green/building_tavern_green.gltf', name: 'Tavern' },
+    { path: 'buildings/green/building_blacksmith_green.gltf', name: 'Blacksmith' },
+    { path: 'buildings/green/building_home_A_green.gltf', name: 'House A' },
+    { path: 'buildings/green/building_home_B_green.gltf', name: 'House B' },
+    { path: 'buildings/green/building_well_green.gltf', name: 'Well' },
+    { path: 'buildings/green/building_windmill_green.gltf', name: 'Windmill' },
+    { path: 'buildings/green/building_watermill_green.gltf', name: 'Watermill' },
+    { path: 'buildings/green/building_lumbermill_green.gltf', name: 'Lumbermill' },
+    { path: 'buildings/green/building_tower_A_green.gltf', name: 'Tower' },
+    { path: 'buildings/green/building_tower_B_green.gltf', name: 'Tower B' },
+    { path: 'buildings/green/building_mine_green.gltf', name: 'Mine' },
+    { path: 'buildings/green/building_barracks_green.gltf', name: 'Barracks' },
+    { path: 'tiles/base/hex_grass.gltf', name: 'Hex Grass' },
+  ];
+
+  await Promise.all(modelDefs.map(d => loadModel(d.path, d.name)));
+
+  loadingStatus.textContent = 'Placing buildings...';
+
+  // Place buildings in village layout
+  // Castle — center/north (big, scale it up)
+  placeModel(loadedModels['Castle'], 0, -5, 4, 0,
+    { type: 'building', name: 'Lumbridge Castle', interactable: true });
+
+  // Church — northeast
+  placeModel(loadedModels['Church'], 12, -20, 4, Math.PI * 0.5,
+    { type: 'building', name: 'Lumbridge Church', interactable: true });
+
+  // Village square buildings — south/southwest
+  placeModel(loadedModels['General Store'], -15, 12, 4, 0,
+    { type: 'building', name: 'General Store', interactable: true });
+
+  placeModel(loadedModels['Tavern'], -10, 20, 4, Math.PI,
+    { type: 'building', name: 'Tavern', interactable: true });
+
+  placeModel(loadedModels['Blacksmith'], -22, 18, 4, Math.PI * 0.5,
+    { type: 'building', name: 'Blacksmith', interactable: true });
+
+  // Well in village center
+  placeModel(loadedModels['Well'], -8, 15, 4, 0,
+    { type: 'building', name: 'Well', interactable: true });
+
+  // Homes scattered
+  placeModel(loadedModels['House A'], -18, -10, 4, Math.PI * 0.25,
+    { type: 'building', name: "Bob's Axes", interactable: true });
+
+  placeModel(loadedModels['House B'], 15, 22, 4, Math.PI * 0.75,
+    { type: 'building', name: "Farmer's House", interactable: true });
+
+  placeModel(loadedModels['House A'], -25, 5, 4, Math.PI * 1.5,
+    { type: 'building', name: 'Small House', interactable: true });
+
+  // Windmill on a hill (south-west)
+  placeModel(loadedModels['Windmill'], -35, -30, 4, 0,
+    { type: 'building', name: 'Windmill', interactable: true });
+
+  // Watermill by the river
+  placeModel(loadedModels['Watermill'], 18, 10, 4, Math.PI * 0.5,
+    { type: 'building', name: 'Watermill', interactable: true });
+
+  // Lumbermill west
+  placeModel(loadedModels['Lumbermill'], -40, 15, 4, 0,
+    { type: 'building', name: 'Lumbermill', interactable: true });
+
+  // Towers flanking castle
+  placeModel(loadedModels['Tower'], -12, -12, 4, 0,
+    { type: 'building', name: 'Guard Tower', interactable: true });
+
+  placeModel(loadedModels['Tower B'], 12, -12, 4, 0,
+    { type: 'building', name: 'Guard Tower', interactable: true });
+
+  // Mine east of river
+  placeModel(loadedModels['Mine'], 35, -18, 4, Math.PI,
+    { type: 'building', name: 'Mining Site', interactable: true });
+
+  // Barracks near castle
+  placeModel(loadedModels['Barracks'], 8, 5, 4, Math.PI * 0.5,
+    { type: 'building', name: 'Barracks', interactable: true });
+
+  // Scatter some hex grass tiles for decoration around buildings
+  if (loadedModels['Hex Grass']) {
+    const hexPositions = [
+      {x:0,z:0},{x:-10,z:5},{x:10,z:5},{x:-5,z:-10},{x:5,z:-10},
+      {x:-15,z:-5},{x:15,z:-5},{x:-20,z:10},{x:20,z:10},
+      {x:-5,z:20},{x:5,z:20},{x:-25,z:0},{x:25,z:0},
+    ];
+    hexPositions.forEach(p => {
+      const clone = loadedModels['Hex Grass'].clone();
+      clone.scale.set(3, 3, 3);
+      clone.position.set(p.x, terrainHeight(p.x, p.z) - 0.1, p.z);
+      clone.rotation.y = Math.random() * Math.PI * 2;
+      scene.add(clone);
+    });
+  }
+
+  loadingStatus.textContent = 'Creating river...';
+  createRiver();
+  createBridge();
+
+  loadingStatus.textContent = 'Building Maid Café...';
+  createMaidCafe();
+
+  loadingStatus.textContent = 'Planting trees...';
+  populateTrees();
+  populateRocks();
+  populateFlowers();
+
+  loadingStatus.textContent = 'Spawning NPCs & enemies...';
+  createNPCs();
+  spawnEnemies();
+  createFishingSpots();
+
+  loadingStatus.textContent = 'Initializing player...';
+  player = new Player();
+  ui = new GameUI(player);
+
+  ui.addMessage('', 'Welcome to Lumbridge.', 'game');
+  ui.addMessage('', 'HDOS HD Client loaded — now with real 3D models!', 'game');
+  ui.addMessage('', 'Left-click to move. Right-click for options.', 'game');
+  ui.addMessage('', 'Use WASD to rotate camera, scroll to zoom.', 'game');
+
+  loadingStatus.textContent = 'Ready!';
+  loadingBar.style.width = '100%';
+  loadingPct.textContent = '100%';
+
+  await new Promise(r => setTimeout(r, 600));
+  loadingScreen.classList.add('hidden');
+}
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+const clock = new THREE.Clock();
+
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+  const delta = Math.min(clock.getDelta(), 0.1);
+  const time = clock.getElapsedTime();
+  if (!player) return;
+
+  // Camera WASD
+  if (document.activeElement.id !== 'chat-input') {
+    if (keys['a']) camState.angle -= 1.5 * delta;
+    if (keys['d']) camState.angle += 1.5 * delta;
+    if (keys['w']) camState.pitch = Math.min(camState.maxPitch, camState.pitch + 30 * delta);
+    if (keys['s']) camState.pitch = Math.max(camState.minPitch, camState.pitch - 30 * delta);
+  }
+
+  camState.targetPos.lerp(
+    new THREE.Vector3(player.group.position.x, player.group.position.y + 3, player.group.position.z),
+    5 * delta
+  );
+  updateCamera();
+
+  sunLight.target.position.copy(camState.targetPos);
+  sunLight.position.copy(sunPos).multiplyScalar(60).add(camState.targetPos);
+
+  // Player
+  player.update(delta, time, {
+    onHit: (enemy, damage) => {
+      showHitsplat(enemy, damage);
+      if (damage > 0) {
+        ui.addMessage('', `You hit the ${enemy.userData.name} for ${damage} damage.`, 'game');
+        const atkXP = damage * 4, strXP = damage * 4, hpXP = Math.floor(damage * 1.33);
+        player.addXP('attack', atkXP); player.addXP('strength', strXP);
+        const hpResult = player.addXP('hitpoints', hpXP);
+        ui.showXPDrop('attack', atkXP);
+        setTimeout(() => ui.showXPDrop('strength', strXP), 300);
+        setTimeout(() => ui.showXPDrop('hitpoints', hpXP), 600);
+        if (hpResult.levelUp) ui.addMessage('', `🎉 Your Hitpoints level is now ${hpResult.level}!`, 'game');
+      } else {
+        ui.addMessage('', `You miss the ${enemy.userData.name}.`, 'game');
+      }
+    },
+    onKill: (enemy) => {
+      ui.addMessage('', `You have defeated the ${enemy.userData.name}!`, 'game');
+      if (enemy.userData.drops) {
+        enemy.userData.drops.forEach(drop => {
+          if (Math.random() <= drop.chance) {
+            const count = drop.name === 'Coins' ? Math.floor(Math.random() * 15) + 1 : 1;
+            player.addItem({ name: drop.name, icon: drop.icon, count, type: 'loot' });
+            ui.addMessage('', `${drop.icon} You received: ${drop.name}${count > 1 ? ` x${count}` : ''}.`, 'game');
+          }
+        });
+        ui.updateInventory();
+      }
+    },
+    onSkill: (type, target) => {
+      if (type === 'woodcutting') {
+        const xpAmt = target.userData.treeType === 'oak' ? 37.5 : 25;
+        const r = player.addXP('woodcutting', xpAmt); ui.showXPDrop('woodcutting', xpAmt);
+        const logName = target.userData.treeType === 'oak' ? 'Oak Logs' : 'Logs';
+        player.addItem({ name: logName, icon: '🪵', count: 1, type: 'resource' });
+        ui.addMessage('', `You get some ${logName.toLowerCase()}.`, 'game');
+        if (r.levelUp) ui.addMessage('', `🎉 Your Woodcutting level is now ${r.level}!`, 'game');
+      } else if (type === 'mining') {
+        const r = player.addXP('mining', 17.5); ui.showXPDrop('mining', 17.5);
+        const ores = [{ name: 'Copper Ore', icon: '🟤' }, { name: 'Tin Ore', icon: '⬜' }];
+        const ore = ores[Math.floor(Math.random() * ores.length)];
+        player.addItem({ ...ore, count: 1, type: 'resource' });
+        ui.addMessage('', `You manage to mine some ${ore.name.toLowerCase()}.`, 'game');
+        if (r.levelUp) ui.addMessage('', `🎉 Your Mining level is now ${r.level}!`, 'game');
+      } else if (type === 'fishing') {
+        const r = player.addXP('fishing', 10); ui.showXPDrop('fishing', 10);
+        player.addItem({ name: 'Raw Shrimp', icon: '🦐', count: 1, type: 'resource' });
+        ui.addMessage('', 'You catch some shrimp.', 'game');
+        if (r.levelUp) ui.addMessage('', `🎉 Your Fishing level is now ${r.level}!`, 'game');
+      }
+      ui.updateInventory(); ui.updateSkills();
+    },
+  });
+
+  // NPCs
+  updateNPCsBehavior(time, delta, (sender, msg, type) => ui.addMessage(sender, msg, type));
+
+  // Water animation
+  if (water) water.material.uniforms['time'].value += delta;
+
+  // Fishing bubbles
+  fishSpots.forEach(spot => {
+    spot.children.forEach((bubble, i) => { bubble.position.y = Math.sin(time * 3 + i) * 0.3 + 0.2; });
+  });
+
+  // Marker pulse
+  if (player.marker.visible) {
+    player.marker.rotation.y = time * 3;
+    player.marker.scale.setScalar(0.8 + Math.sin(time * 5) * 0.2);
+  }
+
+  ui.updateOrbs();
+  updateLabels();
+  updateHitsplats();
+
+  if (time - (window._lastMinimap || 0) > 0.2) {
+    ui.updateMinimap(player, npcs, enemies);
+    window._lastMinimap = time;
+  }
+
+  composer.render();
+}
+
+// ============================================================
+//  RESIZE
+// ============================================================
+window.addEventListener('resize', () => {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+  bloomPass.setSize(w, h);
+});
+
+// ============================================================
+//  START
+// ============================================================
+buildWorld().then(() => gameLoop());
+</script>
 </body>
 </html>
