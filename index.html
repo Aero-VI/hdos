@@ -279,7 +279,6 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/",
-    "troika-three-text": "https://cdn.jsdelivr.net/npm/troika-three-text@0.49.1/dist/troika-three-text.esm.js"
   }
 }
 </script>
@@ -294,7 +293,6 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { Water } from 'three/addons/objects/Water.js';
-import { Text } from 'troika-three-text';
 
 // ============================================================
 //  CONSTANTS
@@ -1441,10 +1439,10 @@ const labels = new Map();
 const hitsplats = [];
 
 // FIX #9: Troika 3D text labels in world space
-const troikaLabels = new Map();
+// NPC labels use CSS overlays instead of Troika
 
 function getOrCreateTroikaLabel(npc) {
-  if (troikaLabels.has(npc)) return troikaLabels.get(npc);
+  return null; // Troika removed, using CSS labels
 
   const textMesh = new Text();
   textMesh.text = npc.userData.overhead || npc.userData.name;
