@@ -1,213 +1,347 @@
+// ui.js — OSRS-style UI management
 import * as THREE from 'three';
 
-export class UIManager {
-    constructor(player) {
-        this.player = player;
-        this.chatEl = document.getElementById('chat-messages');
-        this.chatInput = document.getElementById('chat-input');
-        this.contextMenu = document.getElementById('context-menu');
-        this.xpDrops = document.getElementById('xp-drops');
-        this.npcDialog = document.getElementById('npc-dialog');
+export class GameUI {
+  constructor(player) {
+    this.player = player;
+    this.activeTab = 'all';
+    this.activePanel = 'inventory';
+    this.messages = [];
 
-        this._setupInventory();
-        this._setupStats();
-        this._setupTabs();
-        this._setupChatTabs();
-        this._setupChatInput();
-        this.addChatMessage('Welcome to Lumbridge.', 'system');
-        this.addChatMessage("It's a nice day in Gielinor.", 'game');
-    }
+    this._setupChatTabs();
+    this._setupPanelTabs();
+    this._setupInventory();
+    this._setupSkills();
+    this._setupChatInput();
+  }
 
-    _setupInventory() {
-        this.player.inventory = [
-            { name: 'Bronze sword', icon: 'https://oldschool.runescape.wiki/images/Bronze_sword.png' },
-            { name: 'Wooden shield', icon: 'https://oldschool.runescape.wiki/images/Wooden_shield.png' },
-            { name: 'Bronze axe', icon: 'https://oldschool.runescape.wiki/images/Bronze_axe.png' },
-            { name: 'Bronze pickaxe', icon: 'https://oldschool.runescape.wiki/images/Bronze_pickaxe.png' },
-            { name: 'Small fishing net', icon: 'https://oldschool.runescape.wiki/images/Small_fishing_net.png' },
-            { name: 'Tinderbox', icon: 'https://oldschool.runescape.wiki/images/Tinderbox.png' },
-            { name: 'Bread', icon: 'https://oldschool.runescape.wiki/images/Bread.png', qty: 3 },
-        ];
-        this.refreshInventory();
-    }
+  _setupChatTabs() {
+    document.querySelectorAll('.chat-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        this.activeTab = tab.dataset.tab;
+        this._renderMessages();
+      });
+    });
+  }
 
-    refreshInventory() {
-        const grid = document.getElementById('inventory-grid'); grid.innerHTML = '';
-        for (let i = 0; i < 28; i++) {
-            const slot = document.createElement('div'); slot.className = 'inv-slot';
-            const item = this.player.inventory[i];
-            if (item) {
-                if (item.icon?.startsWith('http')) {
-                    const img = document.createElement('img'); img.src = item.icon; img.alt = item.name; img.title = item.name;
-                    img.onerror = () => { img.style.display = 'none'; slot.textContent = item.emoji || '📦'; };
-                    slot.appendChild(img);
-                } else { slot.textContent = item.emoji || item.icon || '📦'; slot.style.fontSize = '20px'; slot.title = item.name; }
-                if (item.qty > 1) { const c = document.createElement('span'); c.className = 'inv-count'; c.textContent = item.qty; slot.appendChild(c); }
-                slot.addEventListener('contextmenu', (ev) => {
-                    ev.preventDefault();
-                    this.showContextMenu(ev.clientX, ev.clientY, item.name, [
-                        { action: 'Use', label: `Use ${item.name}` },
-                        { action: 'Drop', label: `Drop ${item.name}` },
-                        { action: 'Examine', label: `Examine ${item.name}` },
-                    ]);
-                });
-            }
-            grid.appendChild(slot);
+  _setupPanelTabs() {
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        this.activePanel = tab.dataset.panel;
+        document.getElementById(`${this.activePanel}-panel`).classList.add('active');
+        if (this.activePanel === 'inventory') this.updateInventory();
+        if (this.activePanel === 'skills') this.updateSkills();
+      });
+    });
+  }
+
+  _setupChatInput() {
+    const input = document.getElementById('chat-input');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        this.addMessage('You', input.value.trim(), 'public');
+        input.value = '';
+        input.blur();
+      }
+    });
+
+    // Focus on Enter key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.activeElement !== input) {
+        input.focus();
+      }
+    });
+  }
+
+  _setupInventory() {
+    const grid = document.getElementById('inventory-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 28; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'inv-slot';
+      slot.dataset.index = i;
+      slot.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const item = this.player.inventory[i];
+        if (item) {
+          this.showContextMenu(e.clientX, e.clientY, [
+            { label: `${item.icon} ${item.name}`, action: null, highlight: true },
+            { label: 'Use', action: () => this.useItem(i) },
+            { label: 'Drop', action: () => this.dropItem(i) },
+            { label: 'Examine', action: () => this.addMessage('', `${item.name}: A useful item.`, 'game') },
+          ]);
         }
+      });
+      grid.appendChild(slot);
     }
+    this.updateInventory();
+  }
 
-    _setupStats() {
-        const grid = document.getElementById('stats-grid');
-        Object.keys(this.player.skills).forEach(name => {
-            const box = document.createElement('div'); box.className = 'stat-box'; box.id = `stat-${name}`;
-            box.innerHTML = `<div class="stat-name">${name}</div><div class="stat-level">${this.player.skills[name].level}</div>`;
-            grid.appendChild(box);
-        });
-    }
+  _setupSkills() {
+    this.updateSkills();
+  }
 
-    refreshStats() {
-        Object.keys(this.player.skills).forEach(name => {
-            const el = document.getElementById(`stat-${name}`);
-            if (el) el.querySelector('.stat-level').textContent = this.player.skills[name].level;
-        });
-    }
+  addMessage(sender, text, type = 'game') {
+    this.messages.push({ sender, text, type, time: Date.now() });
+    if (this.messages.length > 200) this.messages.shift();
+    this._renderMessages();
+  }
 
-    _setupTabs() {
-        document.querySelectorAll('.side-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.side-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
-            });
-        });
-    }
+  _renderMessages() {
+    const container = document.getElementById('chat-messages');
+    const filtered = this.activeTab === 'all'
+      ? this.messages
+      : this.messages.filter(m => m.type === this.activeTab);
 
-    _setupChatTabs() {
-        document.querySelectorAll('.chat-tab').forEach(tab => {
-            tab.addEventListener('click', () => { document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); });
-        });
-    }
+    const last50 = filtered.slice(-50);
+    container.innerHTML = last50.map(m => {
+      const cls = `msg msg-${m.type}`;
+      const prefix = m.sender ? `<b>${m.sender}:</b> ` : '';
+      return `<div class="${cls}">${prefix}${m.text}</div>`;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  }
 
-    _setupChatInput() {
-        this.chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && this.chatInput.value.trim()) {
-                this.addChatMessage(this.chatInput.value, 'public', 'You');
-                this.chatInput.value = '';
-            }
-        });
-    }
-
-    addChatMessage(text, type = 'game', sender = null) {
-        const div = document.createElement('div'); div.className = `chat-msg-${type}`;
-        div.innerHTML = sender ? `<span class="chat-name">${sender}:</span> ${text}` : text;
-        this.chatEl.appendChild(div); this.chatEl.scrollTop = this.chatEl.scrollHeight;
-        while (this.chatEl.children.length > 100) this.chatEl.removeChild(this.chatEl.firstChild);
-    }
-
-    showContextMenu(x, y, title, options, callbacks = {}) {
-        this.contextMenu.classList.remove('hidden');
-        this.contextMenu.style.left = x + 'px'; this.contextMenu.style.top = y + 'px';
-        this.contextMenu.innerHTML = `<div class="ctx-title">${title}</div>`;
-        options.forEach(opt => {
-            const div = document.createElement('div'); div.className = 'ctx-option';
-            div.innerHTML = `<span class="ctx-action">${opt.action}</span> ${opt.label.replace(opt.action, '').trim()}`;
-            div.addEventListener('click', () => {
-                this.hideContextMenu();
-                if (callbacks[opt.action]) callbacks[opt.action]();
-                else if (opt.action === 'Examine') this.addChatMessage(`It's a ${title.toLowerCase()}.`, 'game');
-            });
-            this.contextMenu.appendChild(div);
-        });
-        setTimeout(() => { const hide = () => { this.hideContextMenu(); document.removeEventListener('click', hide); }; document.addEventListener('click', hide); }, 10);
-    }
-
-    hideContextMenu() { this.contextMenu.classList.add('hidden'); }
-
-    showXpDrop(skill, amount) {
-        const div = document.createElement('div'); div.className = 'xp-drop';
-        div.textContent = `+${amount} ${skill} XP`;
-        this.xpDrops.appendChild(div); setTimeout(() => div.remove(), 2000);
-    }
-
-    showHitSplat(screenPos, damage, miss = false) {
-        const splat = document.createElement('div'); splat.className = `hit-splat ${miss ? 'miss' : 'damage'}`;
-        splat.textContent = miss ? '0' : damage;
-        splat.style.left = screenPos.x + 'px'; splat.style.top = screenPos.y + 'px';
-        document.getElementById('ui-overlay').appendChild(splat); setTimeout(() => splat.remove(), 1000);
-    }
-
-    showHealthBar(screenPos, hp, maxHp) {
-        const old = document.getElementById('active-healthbar'); if (old) old.remove();
-        const c = document.createElement('div'); c.className = 'health-bar-container'; c.id = 'active-healthbar';
-        c.style.left = screenPos.x + 'px'; c.style.top = (screenPos.y - 30) + 'px';
-        const fill = document.createElement('div'); fill.className = 'health-bar-fill';
-        fill.style.width = `${(hp / maxHp) * 100}%`;
-        fill.style.background = hp / maxHp > 0.5 ? '#0f0' : hp / maxHp > 0.25 ? '#ff0' : '#f00';
-        c.appendChild(fill); document.getElementById('ui-overlay').appendChild(c);
-        setTimeout(() => c.remove(), 3000);
-    }
-
-    updateOrbs() {
-        document.querySelector('#orb-hp .orb-text').textContent = `${this.player.hp}/${this.player.maxHp}`;
-        document.querySelector('#orb-prayer .orb-text').textContent = `${this.player.prayer}/${this.player.maxPrayer}`;
-        document.querySelector('#orb-run .orb-text').textContent = `${this.player.run}%`;
-    }
-
-    showNpcDialog(npcName, text, options = null, callback = null) {
-        this.npcDialog.classList.remove('hidden');
-        document.getElementById('npc-dialog-name').textContent = npcName;
-        document.getElementById('npc-dialog-text').textContent = text;
-        const optEl = document.getElementById('npc-dialog-options'); optEl.innerHTML = '';
-        if (options) {
-            options.forEach((opt, i) => {
-                const btn = document.createElement('div'); btn.className = 'dialog-option'; btn.textContent = opt;
-                btn.addEventListener('click', () => { if (callback) callback(i); this.hideDialog(); }); optEl.appendChild(btn);
-            });
-        } else {
-            const btn = document.createElement('div'); btn.className = 'dialog-option'; btn.textContent = 'Click to continue';
-            btn.addEventListener('click', () => { if (callback) callback(0); this.hideDialog(); }); optEl.appendChild(btn);
+  updateInventory() {
+    const slots = document.querySelectorAll('.inv-slot');
+    slots.forEach((slot, i) => {
+      const item = this.player.inventory[i];
+      if (item) {
+        slot.innerHTML = `<span style="font-size:20px">${item.icon}</span>`;
+        if (item.count > 1) {
+          slot.innerHTML += `<span class="item-count">${item.count >= 1000 ? Math.floor(item.count/1000) + 'k' : item.count}</span>`;
         }
-    }
+        slot.title = item.name;
+      } else {
+        slot.innerHTML = '';
+        slot.title = '';
+      }
+    });
+  }
 
-    hideDialog() { this.npcDialog.classList.add('hidden'); }
+  updateSkills() {
+    const list = document.getElementById('skills-list');
+    const skills = [
+      { name: 'Attack', key: 'attack', icon: '⚔️' },
+      { name: 'Strength', key: 'strength', icon: '💪' },
+      { name: 'Defence', key: 'defence', icon: '🛡️' },
+      { name: 'Hitpoints', key: 'hitpoints', icon: '❤️' },
+      { name: 'Mining', key: 'mining', icon: '⛏️' },
+      { name: 'Woodcutting', key: 'woodcutting', icon: '🪓' },
+      { name: 'Fishing', key: 'fishing', icon: '🐟' },
+      { name: 'Cooking', key: 'cooking', icon: '🍳' },
+    ];
 
-    updateMinimap(playerPos, entities, camera) {
-        const canvas = document.getElementById('minimap');
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width, h = canvas.height, sc = 1.5;
-        ctx.fillStyle = '#2d5a1e'; ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#1a6b8a';
-        ctx.fillRect(((-35 - playerPos.x) * sc) + w/2 - 8, 0, 16, h);
-        [{x:0,z:-20,w:14,h:12,c:'#666'},{x:15,z:8,w:8,h:7,c:'#886'},{x:-15,z:-10,w:8,h:12,c:'#555'},{x:-18,z:8,w:6,h:5,c:'#876'},{x:-18,z:18,w:6,h:5,c:'#876'},{x:20,z:14,w:6,h:6,c:'#f69'}].forEach(b => {
-            ctx.fillStyle = b.c;
-            ctx.fillRect(((b.x-playerPos.x)*sc)+w/2-b.w*sc/2, ((b.z-playerPos.z)*sc)+h/2-b.h*sc/2, b.w*sc, b.h*sc);
-        });
-        ctx.fillStyle = '#8B7355';
-        ctx.fillRect(((0-playerPos.x)*sc)+w/2-3, 0, 6, h);
-        ctx.fillRect(0, ((5-playerPos.z)*sc)+h/2-3, w, 6);
-        entities.forEach(e => {
-            if (e.dead) return;
-            const ex = ((e.mesh.position.x-playerPos.x)*sc)+w/2, ez = ((e.mesh.position.z-playerPos.z)*sc)+h/2;
-            if (ex < 0 || ex > w || ez < 0 || ez > h) return;
-            ctx.fillStyle = e.type === 'npc' ? '#ff0' : '#f00';
-            ctx.beginPath(); ctx.arc(ex, ez, 2, 0, Math.PI*2); ctx.fill();
-        });
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(w/2, h/2, 3, 0, Math.PI*2); ctx.fill();
-    }
+    list.innerHTML = skills.map(s => {
+      const level = this.player.stats[s.key] || 1;
+      const xp = this.player.xp[s.key] || 0;
+      return `<div class="skill-entry" title="${s.name}: ${xp} XP">
+        <span class="skill-icon">${s.icon}</span>
+        <span style="flex:1;font-size:9px">${s.name}</span>
+        <span class="skill-level">${level}</span>
+      </div>`;
+    }).join('');
+  }
 
-    updateLootLabels(lootItems, camera, renderer) {
-        document.querySelectorAll('.loot-label').forEach(l => l.remove());
-        lootItems.forEach(item => {
-            const pos = item.position.clone(); pos.y = 0.5; pos.project(camera);
-            if (pos.z > 1) return;
-            const x = (pos.x * 0.5 + 0.5) * renderer.domElement.width;
-            const y = (-pos.y * 0.5 + 0.5) * renderer.domElement.height;
-            const label = document.createElement('div'); label.className = 'loot-label';
-            label.textContent = `${item.icon || '📦'} ${item.name}${item.qty ? ` (${item.qty})` : ''}`;
-            label.style.left = x + 'px'; label.style.top = y + 'px';
-            label.addEventListener('click', () => { item._pickup = true; });
-            document.getElementById('ui-overlay').appendChild(label);
+  updateOrbs() {
+    const p = this.player.stats;
+    document.getElementById('hp-text').textContent = p.hp;
+    document.querySelector('.hp-fill').style.height = `${(p.hp / p.maxHp) * 100}%`;
+    document.getElementById('prayer-text').textContent = p.prayer;
+    document.querySelector('.prayer-fill').style.height = `${(p.prayer / p.maxPrayer) * 100}%`;
+    document.getElementById('run-text').textContent = Math.floor(p.runEnergy);
+    document.querySelector('.run-fill').style.height = `${p.runEnergy}%`;
+  }
+
+  showXPDrop(skill, amount) {
+    const container = document.getElementById('xp-drops');
+    const icons = { attack: '⚔️', strength: '💪', defence: '🛡️', hitpoints: '❤️', mining: '⛏️', woodcutting: '🪓', fishing: '🐟', cooking: '🍳' };
+    const drop = document.createElement('div');
+    drop.className = 'xp-drop';
+    drop.textContent = `${icons[skill] || '✨'} +${amount} XP`;
+    container.appendChild(drop);
+    setTimeout(() => drop.remove(), 2000);
+  }
+
+  showContextMenu(x, y, options) {
+    const menu = document.getElementById('context-menu');
+    const list = document.getElementById('context-options');
+    list.innerHTML = '';
+
+    options.forEach(opt => {
+      const li = document.createElement('li');
+      li.textContent = opt.label;
+      if (opt.highlight) li.style.color = '#ff0';
+      if (opt.action) {
+        li.addEventListener('click', () => {
+          opt.action();
+          menu.classList.add('hidden');
         });
+      }
+      list.appendChild(li);
+    });
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.classList.remove('hidden');
+  }
+
+  hideContextMenu() {
+    document.getElementById('context-menu').classList.add('hidden');
+  }
+
+  showNPCDialog(name, lines) {
+    const dialog = document.getElementById('npc-dialog');
+    const nameEl = document.getElementById('npc-dialog-name');
+    const textEl = document.getElementById('npc-dialog-text');
+    const optsEl = document.getElementById('npc-dialog-options');
+
+    let lineIndex = 0;
+    nameEl.textContent = name;
+    textEl.textContent = lines[lineIndex];
+    optsEl.innerHTML = '';
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Continue';
+    nextBtn.addEventListener('click', () => {
+      lineIndex++;
+      if (lineIndex < lines.length) {
+        textEl.textContent = lines[lineIndex];
+      } else {
+        dialog.classList.add('hidden');
+      }
+    });
+    optsEl.appendChild(nextBtn);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.addEventListener('click', () => dialog.classList.add('hidden'));
+    optsEl.appendChild(closeBtn);
+
+    dialog.classList.remove('hidden');
+  }
+
+  useItem(index) {
+    const item = this.player.inventory[index];
+    if (!item) return;
+
+    if (item.name === 'Raw Chicken' || item.name === 'Raw Shrimp') {
+      // "Cook" it
+      item.name = item.name.replace('Raw ', 'Cooked ');
+      item.icon = '🍖';
+      this.addMessage('', `You cook the ${item.name}.`, 'game');
+      const result = this.player.addXP('cooking', 30);
+      this.showXPDrop('cooking', 30);
+      if (result.levelUp) {
+        this.addMessage('', `🎉 Congratulations! Your Cooking level is now ${result.level}!`, 'game');
+      }
+    } else if (item.name.startsWith('Cooked')) {
+      // Eat it
+      const heal = 3;
+      this.player.stats.hp = Math.min(this.player.stats.maxHp, this.player.stats.hp + heal);
+      this.addMessage('', `You eat the ${item.name}. It heals ${heal} hitpoints.`, 'game');
+      item.count--;
+      if (item.count <= 0) this.player.inventory[index] = null;
     }
+    this.updateInventory();
+    this.updateOrbs();
+  }
+
+  dropItem(index) {
+    const item = this.player.inventory[index];
+    if (item) {
+      this.addMessage('', `You drop the ${item.name}.`, 'game');
+      this.player.inventory[index] = null;
+      this.updateInventory();
+    }
+  }
+
+  // Minimap rendering
+  updateMinimap(player, npcs, enemies) {
+    const canvas = document.getElementById('minimap');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+
+    // Dark green background
+    ctx.fillStyle = '#0a1a0a';
+    ctx.fillRect(0, 0, w, h);
+
+    const scale = 1.2;
+    const cx = player.group.position.x;
+    const cz = player.group.position.z;
+
+    // Draw terrain color grid (simplified)
+    ctx.fillStyle = '#2a4a1a';
+    ctx.fillRect(0, 0, w, h);
+
+    // River
+    ctx.fillStyle = '#224488';
+    const riverX = (20 * 2 - cx) * scale + w/2;
+    ctx.fillRect(riverX - 4, 0, 8, h);
+
+    // Castle
+    ctx.fillStyle = '#666655';
+    const castleX = (0 - cx) * scale + w/2;
+    const castleZ = (0 - cz) * scale + h/2;
+    ctx.fillRect(castleX - 8, castleZ - 7, 16, 14);
+
+    // Buildings
+    ctx.fillStyle = '#554433';
+    // General store
+    const gsX = (-20 - cx) * scale + w/2;
+    const gsZ = (12 - cz) * scale + h/2;
+    ctx.fillRect(gsX - 4, gsZ - 3, 8, 6);
+
+    // Church
+    ctx.fillStyle = '#887766';
+    const chX = (20 - cx) * scale + w/2;
+    const chZ = (-15 - cz) * scale + h/2;
+    ctx.fillRect(chX - 4, chZ - 7, 8, 14);
+
+    // Maid café (pink dot)
+    ctx.fillStyle = '#FF69B4';
+    const mcX = (-25 - cx) * scale + w/2;
+    const mcZ = (-20 - cz) * scale + h/2;
+    ctx.fillRect(mcX - 4, mcZ - 3, 8, 7);
+
+    // NPCs (yellow dots)
+    ctx.fillStyle = '#FFFF00';
+    npcs.forEach(npc => {
+      if (npc.userData.isDead) return;
+      const nx = (npc.position.x - cx) * scale + w/2;
+      const nz = (npc.position.z - cz) * scale + h/2;
+      if (nx > 0 && nx < w && nz > 0 && nz < h) {
+        ctx.fillRect(nx - 1, nz - 1, 3, 3);
+      }
+    });
+
+    // Enemies (red dots)
+    ctx.fillStyle = '#FF0000';
+    enemies.forEach(e => {
+      if (e.userData.isDead) return;
+      const ex = (e.position.x - cx) * scale + w/2;
+      const ez = (e.position.z - cz) * scale + h/2;
+      if (ex > 0 && ex < w && ez > 0 && ez < h) {
+        ctx.fillRect(ex - 1, ez - 1, 3, 3);
+      }
+    });
+
+    // Player (white arrow/dot)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(w/2, h/2, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Circular mask
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath();
+    ctx.arc(w/2, h/2, w/2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  }
 }

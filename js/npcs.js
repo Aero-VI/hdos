@@ -1,168 +1,414 @@
+// npcs.js — NPCs, enemies, and their behaviors
 import * as THREE from 'three';
+import { colorMat, makeMat, TEX } from './textures.js';
 
-export class EntityManager {
-    constructor(scene) {
-        this.scene = scene;
-        this.entities = [];
-        this.loot = [];
-        this._spawnNPCs();
-        this._spawnMonsters();
+// ============================================================
+//  NPC FACTORY — low-poly RS-style humanoids
+// ============================================================
+function createHumanoid(opts = {}) {
+  const group = new THREE.Group();
+  const skinColor = opts.skin || 0xDEB887;
+  const shirtColor = opts.shirt || 0x3366AA;
+  const pantsColor = opts.pants || 0x554433;
+  const hairColor = opts.hair || 0x332211;
+
+  const skinMat = colorMat(skinColor, 0.85);
+  const shirtMat = colorMat(shirtColor, 0.8);
+  const pantsMat = colorMat(pantsColor, 0.85);
+  const hairMat = colorMat(hairColor, 0.9);
+
+  // Head (box for RS style)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), skinMat);
+  head.position.y = 3.1;
+  head.castShadow = true;
+  group.add(head);
+
+  // Hair
+  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.35, 0.75), hairMat);
+  hair.position.y = 3.55;
+  group.add(hair);
+
+  // Eyes (tiny dark boxes)
+  for (const side of [-0.15, 0.15]) {
+    const eye = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.1, 0.05),
+      colorMat(0x111111)
+    );
+    eye.position.set(side, 3.15, 0.37);
+    group.add(eye);
+  }
+
+  // Body/torso
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.55), shirtMat);
+  torso.position.y = 2.15;
+  torso.castShadow = true;
+  group.add(torso);
+
+  // Arms
+  for (const side of [-0.6, 0.6]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), shirtMat);
+    arm.position.set(side, 2.1, 0);
+    arm.castShadow = true;
+    group.add(arm);
+    // Hand
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), skinMat);
+    hand.position.set(side, 1.5, 0);
+    group.add(hand);
+  }
+
+  // Legs
+  for (const side of [-0.2, 0.2]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.1, 0.4), pantsMat);
+    leg.position.set(side, 1.05, 0);
+    leg.castShadow = true;
+    group.add(leg);
+    // Feet
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.5), colorMat(0x333333, 0.9));
+    foot.position.set(side, 0.45, 0.08);
+    group.add(foot);
+  }
+
+  return group;
+}
+
+// ============================================================
+//  SPECIFIC NPCs
+// ============================================================
+export function createNPCs(scene) {
+  const npcs = [];
+  const hFn = window._terrainHeight || (() => 0);
+
+  // === Duke Horacio (in castle) ===
+  const duke = createHumanoid({ shirt: 0x8B0000, pants: 0x2F1500, hair: 0x444444 });
+  duke.position.set(0, 0.4, 0); // inside castle
+  duke.name = 'duke_horacio';
+  duke.userData = {
+    type: 'npc', name: 'Duke Horacio', interactable: true, overhead: 'Duke Horacio',
+    dialog: [
+      "Welcome to my castle. Lumbridge has been my family's home for generations.",
+      "The goblins to the east have been causing trouble lately...",
+      "If you're new here, I'd suggest talking to the tutors around town.",
+    ],
+  };
+  scene.add(duke);
+  npcs.push(duke);
+
+  // === Hans (wandering) ===
+  const hans = createHumanoid({ shirt: 0xBBAA77, pants: 0x776644 });
+  hans.position.set(5, hFn(5, 8), 8);
+  hans.name = 'hans';
+  hans.userData = {
+    type: 'npc', name: 'Hans', interactable: true, overhead: 'Hans',
+    dialog: [
+      "Hello there. I've been wandering around this castle for years.",
+      "I'm Hans. If you need to know how long you've been here, just ask.",
+    ],
+    wander: { radius: 10, speed: 1.2, center: new THREE.Vector3(5, 0, 8) },
+  };
+  scene.add(hans);
+  npcs.push(hans);
+
+  // === L0nely_N00b (iconic) ===
+  const noob = createHumanoid({ shirt: 0x00AA00, pants: 0x996633, skin: 0xFFCC99, hair: 0xFF8800 });
+  noob.position.set(-8, hFn(-8, 15), 15);
+  noob.name = 'l0nely_n00b';
+  noob.userData = {
+    type: 'npc', name: 'L0nely_N00b', interactable: true, overhead: 'L0nely_N00b',
+    chatMessages: ["buying gf 10k", "anyone selling gf?", "buying gf 10k plz", "will someone be my gf", "buying gf", "10k for gf"],
+    chatInterval: 8000,
+    dialog: [
+      "hey bro u kno where i can buy a gf??",
+      "ive been trying for like 3 hours",
+      "someone told me to go to GE but idk where that is",
+    ],
+  };
+  scene.add(noob);
+  npcs.push(noob);
+
+  // === Maid NPC (at Maid Café) ===
+  const maid = createHumanoid({ shirt: 0x111111, pants: 0xFFFFFF, skin: 0xFFE0BD, hair: 0x222222 });
+  // Add a white apron
+  const apron = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.8, 0.1),
+    colorMat(0xFFFFFF, 0.7)
+  );
+  apron.position.set(0, 1.9, 0.35);
+  maid.add(apron);
+  // Headband
+  const headband = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.15, 0.3),
+    colorMat(0xFFFFFF, 0.7)
+  );
+  headband.position.set(0, 3.65, 0);
+  maid.add(headband);
+
+  maid.position.set(-25, hFn(-25, -16), -16);
+  maid.name = 'maid_npc';
+  maid.userData = {
+    type: 'npc', name: 'Maid Sakura', interactable: true, overhead: 'Maid Sakura ♡',
+    dialog: [
+      "Welcome home, Master! ♡",
+      "Would you like some tea? Or perhaps... cake? ♡",
+      "Nya~ Please come in and make yourself comfortable!",
+      "Today's special: Omurice with a ketchup heart ♡",
+    ],
+  };
+  scene.add(maid);
+  npcs.push(maid);
+
+  // === Shop keeper (general store) ===
+  const shopkeep = createHumanoid({ shirt: 0xAA8833, pants: 0x553311, hair: 0x666666 });
+  shopkeep.position.set(-20, hFn(-20, 14), 14);
+  shopkeep.name = 'shopkeeper';
+  shopkeep.userData = {
+    type: 'npc', name: 'Shopkeeper', interactable: true, overhead: 'Shopkeeper',
+    dialog: [
+      "Welcome to the Lumbridge General Store!",
+      "Can I help you find anything?",
+      "We buy and sell all sorts of things.",
+    ],
+  };
+  scene.add(shopkeep);
+  npcs.push(shopkeep);
+
+  return npcs;
+}
+
+// ============================================================
+//  ENEMIES — Chickens, Goblins
+// ============================================================
+function createChicken() {
+  const group = new THREE.Group();
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 5, 4),
+    colorMat(0xFFFFEE, 0.9)
+  );
+  body.scale.set(1, 0.8, 1.2);
+  body.position.y = 0.6;
+  body.castShadow = true;
+  group.add(body);
+
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.25, 4, 3),
+    colorMat(0xFFFFEE, 0.9)
+  );
+  head.position.set(0, 1.1, 0.3);
+  group.add(head);
+
+  // Beak
+  const beak = new THREE.Mesh(
+    new THREE.ConeGeometry(0.08, 0.2, 4),
+    colorMat(0xFFAA00, 0.8)
+  );
+  beak.rotation.x = -Math.PI / 2;
+  beak.position.set(0, 1.05, 0.55);
+  group.add(beak);
+
+  // Comb (red thing on head)
+  const comb = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, 0.2, 0.15),
+    colorMat(0xFF0000, 0.8)
+  );
+  comb.position.set(0, 1.3, 0.3);
+  group.add(comb);
+
+  // Legs
+  for (const sx of [-0.15, 0.15]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.03, 0.03, 0.35, 4),
+      colorMat(0xFFAA00, 0.8)
+    );
+    leg.position.set(sx, 0.2, 0);
+    group.add(leg);
+  }
+
+  return group;
+}
+
+function createGoblin() {
+  const group = new THREE.Group();
+  const skinMat = colorMat(0x5A8A3A, 0.85);
+
+  // Head — bigger, more grotesque
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.7), skinMat);
+  head.position.y = 2.4;
+  head.castShadow = true;
+  group.add(head);
+
+  // Pointy ears
+  for (const side of [-0.5, 0.5]) {
+    const ear = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.3, 4),
+      skinMat
+    );
+    ear.rotation.z = side > 0 ? -0.5 : 0.5;
+    ear.position.set(side, 2.5, 0);
+    group.add(ear);
+  }
+
+  // Eyes (yellow, beady)
+  for (const side of [-0.15, 0.15]) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 4, 3),
+      colorMat(0xFFFF00, 0.5)
+    );
+    eye.position.set(side, 2.45, 0.37);
+    group.add(eye);
+  }
+
+  // Body
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.45), colorMat(0x8B4513, 0.85));
+  torso.position.y = 1.7;
+  torso.castShadow = true;
+  group.add(torso);
+
+  // Arms
+  for (const side of [-0.5, 0.5]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.7, 0.25), skinMat);
+    arm.position.set(side, 1.7, 0);
+    arm.castShadow = true;
+    group.add(arm);
+  }
+
+  // Legs
+  for (const side of [-0.15, 0.15]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), colorMat(0x8B4513, 0.85));
+    leg.position.set(side, 0.85, 0);
+    leg.castShadow = true;
+    group.add(leg);
+  }
+
+  // Spear
+  const spearShaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.04, 2.5, 4),
+    colorMat(0x6B4226, 0.9)
+  );
+  spearShaft.position.set(0.6, 1.8, 0.2);
+  spearShaft.rotation.z = 0.15;
+  group.add(spearShaft);
+  const spearTip = new THREE.Mesh(
+    new THREE.ConeGeometry(0.08, 0.3, 4),
+    colorMat(0xAAAAAA, 0.4, 0.6)
+  );
+  spearTip.position.set(0.65, 3.15, 0.2);
+  group.add(spearTip);
+
+  return group;
+}
+
+export function createEnemies(scene) {
+  const enemies = [];
+  const hFn = window._terrainHeight || (() => 0);
+
+  // Chickens near the castle
+  const chickenPositions = [
+    { x: -10, z: 8 }, { x: -12, z: 6 }, { x: -8, z: 10 },
+    { x: -14, z: 9 }, { x: -11, z: 12 },
+  ];
+  chickenPositions.forEach((p, i) => {
+    const chicken = createChicken();
+    chicken.position.set(p.x, hFn(p.x, p.z), p.z);
+    chicken.name = `chicken_${i}`;
+    chicken.userData = {
+      type: 'enemy', enemyType: 'chicken', name: 'Chicken',
+      interactable: true, overhead: 'Chicken (Level 1)',
+      hp: 3, maxHp: 3, level: 1,
+      respawnPos: new THREE.Vector3(p.x, hFn(p.x, p.z), p.z),
+      wander: { radius: 5, speed: 0.6, center: new THREE.Vector3(p.x, 0, p.z) },
+      drops: [
+        { name: 'Raw Chicken', icon: '🍗', chance: 1.0 },
+        { name: 'Feather', icon: '🪶', chance: 1.0 },
+        { name: 'Bones', icon: '🦴', chance: 1.0 },
+      ],
+    };
+    scene.add(chicken);
+    enemies.push(chicken);
+  });
+
+  // Goblins east of the river
+  const goblinPositions = [
+    { x: 35, z: -5 }, { x: 38, z: -8 }, { x: 33, z: -3 },
+    { x: 40, z: -10 }, { x: 36, z: -12 },
+  ];
+  goblinPositions.forEach((p, i) => {
+    const goblin = createGoblin();
+    goblin.position.set(p.x, hFn(p.x, p.z), p.z);
+    goblin.name = `goblin_${i}`;
+    goblin.userData = {
+      type: 'enemy', enemyType: 'goblin', name: 'Goblin',
+      interactable: true, overhead: 'Goblin (Level 2)',
+      hp: 5, maxHp: 5, level: 2,
+      respawnPos: new THREE.Vector3(p.x, hFn(p.x, p.z), p.z),
+      wander: { radius: 6, speed: 0.8, center: new THREE.Vector3(p.x, 0, p.z) },
+      drops: [
+        { name: 'Goblin Mail', icon: '📧', chance: 0.3 },
+        { name: 'Coins', icon: '🪙', chance: 1.0 },
+        { name: 'Bones', icon: '🦴', chance: 1.0 },
+      ],
+    };
+    scene.add(goblin);
+    enemies.push(goblin);
+  });
+
+  return enemies;
+}
+
+// ============================================================
+//  NPC UPDATE LOOP — wandering, chat messages
+// ============================================================
+export function updateNPCs(npcs, enemies, time, delta, chatFn) {
+  const hFn = window._terrainHeight || (() => 0);
+
+  // Wander behavior
+  [...npcs, ...enemies].forEach(npc => {
+    const w = npc.userData.wander;
+    if (!w || npc.userData.isDead) return;
+
+    if (!npc.userData._wanderTarget) {
+      npc.userData._wanderTarget = new THREE.Vector3();
+      npc.userData._wanderTimer = 0;
     }
 
-    _body(colors, scale = 1) {
-        const g = new THREE.Group();
-        const skin = new THREE.MeshStandardMaterial({ color: colors.skin || 0xdeb887, roughness: 0.8 });
-        const shirt = new THREE.MeshStandardMaterial({ color: colors.shirt || 0x888888, roughness: 0.7 });
-        const pants = new THREE.MeshStandardMaterial({ color: colors.pants || 0x555555, roughness: 0.7 });
-        const s = scale;
-
-        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7*s, 0.9*s, 0.45*s), shirt); torso.position.y = 1.5*s; torso.castShadow = true; g.add(torso);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.45*s, 0.5*s, 0.45*s), skin); head.position.y = 2.2*s; head.castShadow = true; g.add(head);
-        if (colors.hair) { const h = new THREE.Mesh(new THREE.BoxGeometry(0.5*s, 0.25*s, 0.5*s), new THREE.MeshStandardMaterial({ color: colors.hair })); h.position.y = 2.4*s; g.add(h); }
-        if (colors.catEars) {
-            const em = new THREE.MeshStandardMaterial({ color: 0x222222 });
-            [[-0.18,2.55],[0.18,2.55]].forEach(([x,y]) => { const e = new THREE.Mesh(new THREE.ConeGeometry(0.08*s, 0.2*s, 4), em); e.position.set(x*s, y*s, 0); g.add(e); });
-        }
-        if (colors.apron) {
-            const a = new THREE.Mesh(new THREE.BoxGeometry(0.5*s, 0.5*s, 0.02*s), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            a.position.set(0, 1.3*s, 0.25*s); g.add(a);
-        }
-
-        g.leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.25*s, 0.7*s, 0.25*s), pants); g.leftLeg.position.set(-0.15*s, 0.75*s, 0); g.add(g.leftLeg);
-        g.rightLeg = g.leftLeg.clone(); g.rightLeg.position.x = 0.15*s; g.add(g.rightLeg);
-        g.leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2*s, 0.8*s, 0.2*s), shirt); g.leftArm.position.set(-0.45*s, 1.5*s, 0); g.add(g.leftArm);
-        g.rightArm = g.leftArm.clone(); g.rightArm.position.x = 0.45*s; g.add(g.rightArm);
-        return g;
+    npc.userData._wanderTimer -= delta;
+    if (npc.userData._wanderTimer <= 0) {
+      // Pick new wander target
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * w.radius;
+      npc.userData._wanderTarget.set(
+        w.center.x + Math.cos(angle) * dist,
+        0,
+        w.center.z + Math.sin(angle) * dist
+      );
+      npc.userData._wanderTimer = 3 + Math.random() * 5;
     }
 
-    _nameSprite(name, color = 0xffff00) {
-        const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-        const ctx = c.getContext('2d'); ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.strokeText(name, 128, 40);
-        ctx.fillStyle = '#' + color.toString(16).padStart(6, '0'); ctx.fillText(name, 128, 40);
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
-        sp.scale.set(2.5, 0.6, 1); return sp;
+    const target = npc.userData._wanderTarget;
+    const dx = target.x - npc.position.x;
+    const dz = target.z - npc.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 0.5) {
+      const speed = w.speed * delta;
+      npc.position.x += (dx / dist) * speed;
+      npc.position.z += (dz / dist) * speed;
+      npc.position.y = hFn(npc.position.x, npc.position.z);
+      // Face movement direction
+      npc.rotation.y = Math.atan2(dx, dz);
     }
+  });
 
-    _lvlSprite(level) {
-        const c = document.createElement('canvas'); c.width = 128; c.height = 32;
-        const ctx = c.getContext('2d'); ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center';
-        ctx.fillStyle = '#0f0'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-        ctx.strokeText(`(level-${level})`, 64, 22); ctx.fillText(`(level-${level})`, 64, 22);
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
-        sp.scale.set(1.8, 0.4, 1); return sp;
+  // L0nely_N00b chat messages
+  npcs.forEach(npc => {
+    if (npc.userData.chatMessages && chatFn) {
+      if (!npc.userData._lastChat) npc.userData._lastChat = 0;
+      const interval = npc.userData.chatInterval || 10000;
+      if (time * 1000 - npc.userData._lastChat > interval) {
+        const msgs = npc.userData.chatMessages;
+        const msg = msgs[Math.floor(Math.random() * msgs.length)];
+        chatFn(npc.userData.name, msg, 'public');
+        npc.userData._lastChat = time * 1000;
+      }
     }
-
-    _spawnNPCs() {
-        const npcs = [
-            { name: 'Hans', pos: [2,0,-10], colors: { shirt: 0xcc8833, pants: 0x664422, hair: 0x888888 }, dialog: ['Welcome to Lumbridge!', "The Duke is upstairs in the castle."] },
-            { name: 'Cook', pos: [5,0,-18], colors: { shirt: 0xffffff, pants: 0x444444, hair: 0x553300 }, dialog: ["It's terrible! I need an egg, flour, and milk for the Duke's dinner!"] },
-            { name: 'Duke Horacio', pos: [0,0,-22], colors: { shirt: 0x8800aa, pants: 0x440066, hair: 0x444444 }, dialog: ['Greetings. Speak to my cook if you wish to help.'] },
-            { name: 'Shopkeeper', pos: [15,0,12], colors: { shirt: 0x886644, pants: 0x553322, hair: 0x222222 }, dialog: ['Can I help you? We buy and sell!'] },
-            { name: 'Father Aereck', pos: [-15,0,-6], colors: { shirt: 0x111111, pants: 0x111111, hair: 0x999999 }, dialog: ['Welcome to the church of Saradomin.'] },
-            { name: 'Bob', pos: [-8,0,5], colors: { shirt: 0x2244aa, pants: 0x224488, hair: 0x332200 }, dialog: ["I'm Bob, the axe shop owner."] },
-            { name: 'Maid Neko ♡', pos: [20,0,18], colors: { shirt: 0xff69b4, pants: 0x222222, hair: 0x111111, catEars: true, apron: true },
-              dialog: ['Welcome home, Master! ♡ Would you like some tea?', 'Nyaa~ Our special today is the Moe Moe Omurice! ♡', 'Master, you look tired from adventuring~', 'This is @cafe@ maidreamin! #1 maid café in Gielinor! ♡'] },
-            { name: 'L0nely_N00b', pos: [22,0,19], colors: { shirt: 0x00aa00, pants: 0x006600, hair: 0xff0000 },
-              dialog: ['buying gf 10k', 'anyone selling gf?', 'will pay 10k for gf pls'], shout: true, shoutInterval: 8, shoutMsg: 'buying gf 10k' },
-        ];
-
-        npcs.forEach(data => {
-            const body = this._body(data.colors);
-            body.position.set(...data.pos);
-            const tag = this._nameSprite(data.name); tag.position.y = 2.8; body.add(tag);
-            this.scene.add(body);
-            this.entities.push({
-                mesh: body, type: 'npc', name: data.name, dialog: data.dialog, dialogIndex: 0,
-                basePos: new THREE.Vector3(...data.pos), wanderTimer: Math.random() * 5, wanderTarget: null,
-                shout: data.shout || false, shoutInterval: data.shoutInterval || 10,
-                shoutTimer: Math.random() * 5, shoutMsg: data.shoutMsg || '', animTime: Math.random() * 10,
-            });
-        });
-    }
-
-    _spawnMonsters() {
-        const monsters = [
-            ...Array.from({length: 5}, (_, i) => ({ name: 'Chicken', level: 1, hp: 3, maxHp: 3, pos: [8+i*2, 0, 20+Math.random()*5], color: 0xffffff, scale: 0.4, loot: [{name:'Bones',icon:'🦴'},{name:'Raw chicken',icon:'🍗'},{name:'Feather',icon:'🪶'}] })),
-            ...Array.from({length: 3}, (_, i) => ({ name: 'Giant rat', level: 1, hp: 2, maxHp: 2, pos: [-5+i*2, 0, 15], color: 0x8B7355, scale: 0.35, loot: [{name:'Bones',icon:'🦴'},{name:'Raw rat meat',icon:'🥩'}] })),
-            ...Array.from({length: 4}, (_, i) => ({ name: 'Goblin', level: 2, hp: 5, maxHp: 5, pos: [35+i*3, 0, 25+Math.random()*5], color: 0x55aa44, scale: 0.55, loot: [{name:'Bones',icon:'🦴'},{name:'Coins',icon:'🪙',qty:Math.floor(Math.random()*20)+1}] })),
-        ];
-
-        monsters.forEach(data => {
-            const g = new THREE.Group(); g.position.set(...data.pos);
-
-            if (data.name === 'Chicken') {
-                const bm = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.9 });
-                const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), bm); body.position.y = 0.4; body.scale.set(1, 0.8, 1.2); g.add(body);
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), bm); head.position.set(0, 0.6, 0.25); g.add(head);
-                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 4), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
-                beak.rotation.x = Math.PI / 2; beak.position.set(0, 0.58, 0.4); g.add(beak);
-                const comb = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.08), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
-                comb.position.set(0, 0.72, 0.2); g.add(comb);
-                const lm = new THREE.MeshStandardMaterial({ color: 0xffaa00 });
-                [[-0.08,0],[0.08,0]].forEach(([x]) => { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), lm); l.position.set(x, 0.12, 0); g.add(l); });
-            } else if (data.name === 'Giant rat') {
-                const bm = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.9 });
-                const body = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), bm); body.position.y = 0.25; body.scale.set(1, 0.7, 1.4); g.add(body);
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), bm); head.position.set(0, 0.3, 0.3); g.add(head);
-                const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.03, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0xbb9977 }));
-                tail.rotation.x = -0.8; tail.position.set(0, 0.2, -0.35); g.add(tail);
-            } else if (data.name === 'Goblin') {
-                const body = this._body({ skin: 0x55aa44, shirt: 0x886633, pants: 0x664422 }, data.scale); g.add(body);
-                const em = new THREE.MeshStandardMaterial({ color: 0x55aa44 });
-                [[-0.2,1.3],[0.2,1.3]].forEach(([x, y]) => {
-                    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15, 4), em);
-                    ear.rotation.z = x > 0 ? -0.5 : 0.5; ear.position.set(x*data.scale, y*data.scale, 0); g.add(ear);
-                });
-            }
-
-            const tag = this._nameSprite(data.name); tag.position.y = data.name === 'Goblin' ? 1.8 : 1.2; g.add(tag);
-            const lvl = this._lvlSprite(data.level); lvl.position.y = (data.name === 'Goblin' ? 1.8 : 1.2) - 0.35; g.add(lvl);
-
-            this.scene.add(g);
-            this.entities.push({
-                mesh: g, type: 'monster', name: data.name, level: data.level,
-                hp: data.hp, maxHp: data.maxHp, basePos: new THREE.Vector3(...data.pos),
-                wanderTimer: Math.random() * 5, wanderTarget: null, loot: data.loot,
-                dead: false, respawnTimer: 0, animTime: Math.random() * 10,
-            });
-        });
-    }
-
-    update(dt, chatFn) {
-        this.entities.forEach(e => {
-            if (e.dead) { e.respawnTimer -= dt; if (e.respawnTimer <= 0) { e.dead = false; e.hp = e.maxHp; e.mesh.visible = true; e.mesh.position.copy(e.basePos); } return; }
-            e.wanderTimer -= dt;
-            if (e.wanderTimer <= 0) {
-                e.wanderTimer = 3 + Math.random() * 5;
-                e.wanderTarget = new THREE.Vector3(e.basePos.x + (Math.random()-0.5)*6, 0, e.basePos.z + (Math.random()-0.5)*6);
-            }
-            if (e.wanderTarget) {
-                const dir = new THREE.Vector3().subVectors(e.wanderTarget, e.mesh.position); dir.y = 0;
-                if (dir.length() > 0.3) {
-                    dir.normalize(); e.mesh.position.addScaledVector(dir, 1.5 * dt);
-                    e.mesh.rotation.y = Math.atan2(dir.x, dir.z);
-                    e.animTime += dt * 5;
-                    if (e.mesh.leftArm) {
-                        const s = Math.sin(e.animTime) * 0.4;
-                        e.mesh.leftArm.rotation.x = s; e.mesh.rightArm.rotation.x = -s;
-                        e.mesh.leftLeg.rotation.x = -s; e.mesh.rightLeg.rotation.x = s;
-                    }
-                } else e.wanderTarget = null;
-            }
-            if (e.shout && chatFn) { e.shoutTimer -= dt; if (e.shoutTimer <= 0) { e.shoutTimer = e.shoutInterval + Math.random() * 4; chatFn(e.name, e.shoutMsg); } }
-        });
-    }
-
-    getEntityAt(position, radius = 2) {
-        let closest = null, dist = radius;
-        this.entities.forEach(e => { if (e.dead) return; const d = e.mesh.position.distanceTo(position); if (d < dist) { dist = d; closest = e; } });
-        return closest;
-    }
-
-    killEntity(entity) { entity.dead = true; entity.mesh.visible = false; entity.respawnTimer = 15 + Math.random() * 10; return entity.loot || []; }
-
-    addLoot(items, position) {
-        items.forEach(item => { this.loot.push({ ...item, position: position.clone().add(new THREE.Vector3((Math.random()-0.5), 0, (Math.random()-0.5))), timer: 60 }); });
-    }
+  });
 }
