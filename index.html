@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumbridge — HD</title>
+    <link rel="stylesheet" href="css/ui.css">
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui-overlay">
+        <div id="minimap-container">
+            <canvas id="minimap" width="152" height="152"></canvas>
+            <div id="minimap-compass">N</div>
+            <div id="orb-hp" class="orb"><span class="orb-icon">❤️</span><span class="orb-text">10/10</span></div>
+            <div id="orb-prayer" class="orb"><span class="orb-icon">✙</span><span class="orb-text">1/1</span></div>
+            <div id="orb-run" class="orb"><span class="orb-icon">🏃</span><span class="orb-text">100%</span></div>
+        </div>
+        <div id="side-panel">
+            <div id="side-tabs">
+                <div class="side-tab active" data-tab="inventory" title="Inventory">🎒</div>
+                <div class="side-tab" data-tab="combat" title="Combat">⚔️</div>
+                <div class="side-tab" data-tab="stats" title="Stats">📊</div>
+                <div class="side-tab" data-tab="quests" title="Quests">📜</div>
+                <div class="side-tab" data-tab="equipment" title="Equipment">🛡️</div>
+                <div class="side-tab" data-tab="prayer" title="Prayer">🙏</div>
+                <div class="side-tab" data-tab="magic" title="Magic">🪄</div>
+            </div>
+            <div id="side-content">
+                <div id="tab-inventory" class="tab-panel active"><div id="inventory-grid"></div></div>
+                <div id="tab-combat" class="tab-panel"><h3>Combat Options</h3><p>Attack Style: Accurate</p><p>Combat Level: 3</p></div>
+                <div id="tab-stats" class="tab-panel"><div id="stats-grid"></div></div>
+                <div id="tab-quests" class="tab-panel">
+                    <h3>Quest List</h3>
+                    <div class="quest-entry in-progress">Cook's Assistant</div>
+                    <div class="quest-entry not-started">Sheep Shearer</div>
+                    <div class="quest-entry not-started">The Restless Ghost</div>
+                    <div class="quest-entry not-started">Romeo &amp; Juliet</div>
+                    <div class="quest-entry not-started">Doric's Quest</div>
+                </div>
+                <div id="tab-equipment" class="tab-panel"><h3>Equipment</h3><p>Nothing equipped</p></div>
+                <div id="tab-prayer" class="tab-panel"><h3>Prayers</h3><p>Thick Skin (Lv 1)</p></div>
+                <div id="tab-magic" class="tab-panel"><h3>Spellbook</h3><p>Wind Strike (Lv 1)</p></div>
+            </div>
+        </div>
+        <div id="chatbox">
+            <div id="chat-tabs">
+                <div class="chat-tab active" data-chat="all">All</div>
+                <div class="chat-tab" data-chat="game">Game</div>
+                <div class="chat-tab" data-chat="public">Public</div>
+                <div class="chat-tab" data-chat="private">Private</div>
+                <div class="chat-tab" data-chat="channel">Channel</div>
+                <div class="chat-tab" data-chat="clan">Clan</div>
+                <div class="chat-tab" data-chat="trade">Trade</div>
+            </div>
+            <div id="chat-messages"></div>
+            <input id="chat-input" type="text" placeholder="Press Enter to chat..." />
+        </div>
+        <div id="bottom-bar"></div>
+        <div id="xp-drops"></div>
+        <div id="context-menu" class="hidden"></div>
+        <div id="npc-dialog" class="hidden">
+            <div id="npc-dialog-name"></div>
+            <div id="npc-dialog-text"></div>
+            <div id="npc-dialog-options"></div>
+        </div>
+    </div>
+    <div id="click-marker" class="hidden"><div class="click-x"></div></div>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
