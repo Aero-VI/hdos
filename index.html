@@ -521,7 +521,7 @@ function createRiver() {
   water = new Water(riverGeo, {
     textureWidth: 512, textureHeight: 512,
     waterNormals: texLoader.load(
-      'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/textures/waternormals.jpg',
+      'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/waternormals.jpg',
       (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; assetLoaded('Water normals'); },
     ),
     sunDirection: sunPos.clone(),
