@@ -326,6 +326,7 @@ function assetLoaded(name) {
 //  TEXTURES — FIX #11: NearestFilter on ALL textures
 // ============================================================
 const texLoader = new THREE.TextureLoader();
+texLoader.crossOrigin = 'anonymous';
 const texCache = {};
 
 // FIX #11: Apply nearest-neighbor to every texture for crispy OSRS pixel look
@@ -483,12 +484,12 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
 // FIX #4: SSAO — #1 priority, makes objects feel grounded
-const ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
-ssaoPass.kernelRadius = 12;
-ssaoPass.minDistance = 0.001;
-ssaoPass.maxDistance = 0.15;
-ssaoPass.output = SSAOPass.OUTPUT.Default;
-composer.addPass(ssaoPass);
+//const ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+//ssaoPass.kernelRadius = 12;
+//ssaoPass.minDistance = 0.001;
+//ssaoPass.maxDistance = 0.15;
+//ssaoPass.output = SSAOPass.OUTPUT.Default;
+//composer.addPass(ssaoPass);
 
 // FIX #6: Subtle Bloom — low strength, just enough for fire/neon pop
 const bloomPass = new UnrealBloomPass(
@@ -644,7 +645,13 @@ function createTerrain() {
   geo.computeVertexNormals();
 
   // FIX #2: Custom GLSL splatted terrain material
-  const mat = createTerrainSplatMaterial();
+  let mat;
+  try {
+    mat = createTerrainSplatMaterial();
+  } catch(e) {
+    console.warn('Splatmap shader failed, using fallback:', e);
+    mat = new THREE.MeshStandardMaterial({ color: 0x3d6b35, roughness: 0.9 });
+  }
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   mesh.name = 'terrain';
