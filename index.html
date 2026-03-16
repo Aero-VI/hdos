@@ -28,30 +28,17 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
 #loading-status { font-size: 12px; color: #8b7530; margin-top: 10px; }
 #loading-pct { font-size: 11px; color: #5c4a1e; margin-top: 5px; }
 
-/* ====== 9-SLICE STONE BORDER (FIX #7) ====== */
-/* We generate a stone-border via CSS gradients + border-image-like technique */
-.stone-border {
-  border: 4px solid #5c4a1e;
-  border-image: repeating-linear-gradient(
-    90deg,
-    #3a2a10 0px, #5c4a1e 2px, #8b7530 4px, #5c4a1e 6px, #3a2a10 8px
-  ) 4;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.5), 0 0 4px rgba(0,0,0,0.8);
-}
-
 /* Minimap */
 #minimap-container {
   position: fixed; top: 5px; right: 5px;
   width: 164px; height: 164px;
   border: 3px solid #5c4a1e; border-radius: 50%;
   overflow: hidden; background: #0a1a0a;
-  box-shadow: 0 0 6px rgba(0,0,0,0.8), inset 0 0 4px rgba(0,0,0,0.5);
 }
 #minimap { width: 100%; height: 100%; border-radius: 50%; }
 #compass {
   position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
-  color: #ffd700; font-weight: bold; font-size: 12px;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
+  color: #ffd700; font-weight: bold; font-size: 12px; text-shadow: 0 0 3px #000;
 }
 
 /* Status orbs */
@@ -64,38 +51,29 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
   border: 2px solid #5c4a1e; background: #1a0a00;
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden;
-  box-shadow: 0 0 3px rgba(0,0,0,0.6);
 }
-.orb span { position: relative; z-index: 2; color: #fff; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 0px #000; }
+.orb span { position: relative; z-index: 2; color: #fff; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 1px #000; }
 .orb-fill { position: absolute; bottom: 0; width: 100%; transition: height 0.3s; }
 .hp-fill { background: rgba(200,0,0,0.5); height: 100%; }
 .prayer-fill { background: rgba(0,150,200,0.5); height: 100%; }
 .run-fill { background: rgba(200,170,0,0.5); height: 100%; }
 
-/* Chat box — FIX #7: 9-slice stone border */
+/* Chat box */
 #chatbox {
   position: fixed; bottom: 0; left: 0; width: 500px; height: 160px;
-  background: rgba(0,0,0,0.85);
-  border: 4px solid #5c4a1e;
-  border-bottom: none; border-left: none;
-  border-image: repeating-linear-gradient(
-    90deg,
-    #3a2a10 0px, #5c4a1e 2px, #8b7530 4px, #5c4a1e 6px, #3a2a10 8px
-  ) 4;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.5), 0 0 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.85); border: 2px solid #5c4a1e; border-bottom: none; border-left: none;
 }
 #chat-tabs { display: flex; background: #2a1a00; border-bottom: 1px solid #5c4a1e; }
 .chat-tab {
   flex: 1; padding: 4px 2px; background: none; border: none;
   color: #cba135; font-size: 11px; cursor: pointer; transition: 0.2s;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 .chat-tab:hover, .chat-tab.active { color: #ffd700; background: rgba(255,215,0,0.1); }
 #chat-messages {
   height: 110px; overflow-y: auto; padding: 5px 8px;
   font-size: 12px; color: #fff; scrollbar-width: thin; scrollbar-color: #5c4a1e transparent;
 }
-#chat-messages .msg { margin: 1px 0; line-height: 1.4; text-shadow: 1px 1px 0px #000; /* FIX #8 */ }
+#chat-messages .msg { margin: 1px 0; line-height: 1.4; }
 #chat-messages .msg-game { color: #5882ff; }
 #chat-messages .msg-public { color: #fff; }
 #chat-messages .msg-npc { color: #ff0; }
@@ -105,20 +83,13 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
   width: 100%; padding: 4px 8px; background: #1a0f00;
   border: none; border-top: 1px solid #5c4a1e;
   color: #fff; font-size: 12px; outline: none;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 
-/* Right panel — FIX #7: 9-slice stone border */
+/* Right panel */
 #right-panel {
   position: fixed; top: 175px; right: 0; width: 205px;
-  background: rgba(0,0,0,0.85);
-  border: 4px solid #5c4a1e;
+  background: rgba(0,0,0,0.85); border: 2px solid #5c4a1e;
   border-right: none;
-  border-image: repeating-linear-gradient(
-    90deg,
-    #3a2a10 0px, #5c4a1e 2px, #8b7530 4px, #5c4a1e 6px, #3a2a10 8px
-  ) 4;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.5), 0 0 4px rgba(0,0,0,0.8);
 }
 #panel-tabs { display: flex; background: #2a1a00; border-bottom: 1px solid #5c4a1e; }
 .panel-tab {
@@ -135,77 +106,60 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
   border: 1px solid #5c4a1e; display: flex; align-items: center;
   justify-content: center; font-size: 11px; color: #cba135;
   cursor: pointer; position: relative;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 .inv-slot:hover { background: rgba(100,70,20,0.6); }
 .inv-slot .item-count {
   position: absolute; bottom: 1px; right: 2px;
-  font-size: 9px; color: #ff0; text-shadow: 1px 1px 0px #000; /* FIX #8 */
+  font-size: 9px; color: #ff0; text-shadow: 1px 1px 0 #000;
 }
 #skills-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
 .skill-entry {
   display: flex; align-items: center; gap: 4px;
   padding: 3px 5px; background: rgba(60,40,10,0.4);
   border: 1px solid #3a2a0a; font-size: 10px; color: #cba135;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 .skill-entry .skill-icon { font-size: 14px; }
 .skill-entry .skill-level { color: #ffd700; font-weight: bold; }
 
-/* XP drops — FIX #8 */
+/* XP drops */
 #xp-drops {
   position: fixed; top: 50px; right: 180px; width: 100px;
   pointer-events: none; text-align: right;
 }
 .xp-drop {
   color: #fff; font-size: 14px; font-weight: bold;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 — 1px black, not blur */
-  animation: xpFloat 2s ease-out forwards;
+  text-shadow: 1px 1px 2px #000; animation: xpFloat 2s ease-out forwards;
 }
 @keyframes xpFloat {
   0% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-60px); }
 }
 
-/* Context menu — FIX #7 stone border */
+/* Context menu */
 #context-menu {
-  position: fixed; background: #2a1a00;
-  border: 4px solid #5c4a1e;
-  border-image: repeating-linear-gradient(
-    90deg,
-    #3a2a10 0px, #5c4a1e 2px, #8b7530 4px, #5c4a1e 6px, #3a2a10 8px
-  ) 4;
+  position: fixed; background: #2a1a00; border: 2px solid #5c4a1e;
   min-width: 150px; z-index: 100;
-  box-shadow: 0 0 6px rgba(0,0,0,0.8);
 }
 #context-menu.hidden { display: none; }
 #context-options { list-style: none; }
 #context-options li {
   padding: 4px 12px; color: #cba135; font-size: 12px; cursor: pointer;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 #context-options li:hover { background: rgba(255,215,0,0.15); color: #ffd700; }
 #context-options li:first-child { color: #ff0; font-weight: bold; }
 
-/* NPC dialog — FIX #7 stone border */
+/* NPC dialog */
 #npc-dialog {
   position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%);
-  width: 420px; background: rgba(0,0,0,0.92);
-  border: 4px solid #5c4a1e;
-  border-image: repeating-linear-gradient(
-    90deg,
-    #3a2a10 0px, #5c4a1e 2px, #8b7530 4px, #5c4a1e 6px, #3a2a10 8px
-  ) 4;
+  width: 420px; background: rgba(0,0,0,0.92); border: 2px solid #5c4a1e;
   padding: 15px; text-align: center; border-radius: 4px;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.5), 0 0 6px rgba(0,0,0,0.8);
 }
 #npc-dialog.hidden { display: none; }
-#npc-dialog-name { color: #ffd700; font-weight: bold; font-size: 14px; margin-bottom: 8px; text-shadow: 1px 1px 0px #000; }
-#npc-dialog-text { color: #fff; font-size: 13px; margin-bottom: 12px; line-height: 1.4; text-shadow: 1px 1px 0px #000; }
+#npc-dialog-name { color: #ffd700; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+#npc-dialog-text { color: #fff; font-size: 13px; margin-bottom: 12px; line-height: 1.4; }
 #npc-dialog-options button {
   margin: 3px; padding: 5px 15px; background: #2a1a00; border: 1px solid #5c4a1e;
   color: #00bfff; cursor: pointer; font-size: 12px;
-  text-shadow: 1px 1px 0px #000; /* FIX #8 */
 }
 #npc-dialog-options button:hover { background: #3a2a10; color: #fff; }
 
@@ -246,8 +200,8 @@ body { overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; 
       <div id="panel-content">
         <div id="inventory-panel" class="panel active"><div id="inventory-grid"></div></div>
         <div id="skills-panel" class="panel"><div id="skills-list"></div></div>
-        <div id="equipment-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;text-shadow:1px 1px 0px #000;">Coming soon...</p></div>
-        <div id="prayer-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;text-shadow:1px 1px 0px #000;">Coming soon...</p></div>
+        <div id="equipment-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;">Coming soon...</p></div>
+        <div id="prayer-panel" class="panel"><p style="color:#ff0;text-align:center;padding:20px;">Coming soon...</p></div>
       </div>
     </div>
     <div id="xp-drops"></div>
@@ -290,7 +244,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { Water } from 'three/addons/objects/Water.js';
 
@@ -300,9 +253,6 @@ import { Water } from 'three/addons/objects/Water.js';
 const MODEL_BASE = 'https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/main/addons/kaykit_medieval_hexagon_pack/Assets/gltf/';
 const PH = 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k';
 const TILE = 2;
-
-// Horizon color for fog — warm hazy tone matching sky gradient at horizon
-const HORIZON_COLOR = 0xC8AA78;
 
 // ============================================================
 //  LOADING MANAGER
@@ -323,19 +273,10 @@ function assetLoaded(name) {
 }
 
 // ============================================================
-//  TEXTURES — FIX #11: NearestFilter on ALL textures
+//  TEXTURES (Poly Haven PBR)
 // ============================================================
 const texLoader = new THREE.TextureLoader();
-texLoader.crossOrigin = 'anonymous';
 const texCache = {};
-
-// FIX #11: Apply nearest-neighbor to every texture for crispy OSRS pixel look
-function applyNearestFilter(tex) {
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.generateMipmaps = false;
-  return tex;
-}
 
 function loadPBR(name, rx, ry) {
   const key = `${name}_${rx}_${ry}`;
@@ -344,7 +285,6 @@ function loadPBR(name, rx, ry) {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(rx, ry);
     if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
-    applyNearestFilter(tex); // FIX #11
     return tex;
   };
   trackAsset(); trackAsset(); trackAsset();
@@ -355,17 +295,6 @@ function loadPBR(name, rx, ry) {
   };
   texCache[key] = result;
   return result;
-}
-
-// Load a single diffuse texture with nearest filtering
-function loadDiffuse(url, rx, ry) {
-  trackAsset();
-  const tex = texLoader.load(url, () => assetLoaded(`Texture: ${url.split('/').pop()}`));
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(rx, ry);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  applyNearestFilter(tex); // FIX #11
-  return tex;
 }
 
 function makeMat(texSet, extras = {}) {
@@ -389,22 +318,20 @@ const TEX = {
 };
 
 // ============================================================
-//  RENDERER — FIX #5: Soft Shadows (PCFSoftShadowMap, 2048x2048)
+//  RENDERER
 // ============================================================
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // FIX #5
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.9;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-
-// FIX #1: EXP2 Fog — color matches horizon, density 0.015
-scene.fog = new THREE.FogExp2(HORIZON_COLOR, 0.015);
+scene.fog = new THREE.FogExp2(0xC8B898, 0.003);
 
 // ============================================================
 //  CAMERA
@@ -429,21 +356,16 @@ function updateCamera() {
 }
 
 // ============================================================
-//  LIGHTING — FIX #5: Ambient light UP for soft blue-grey shadows
+//  LIGHTING
 // ============================================================
-// Hemisphere light cranked up so shadows are soft, not pitch black
-const hemiLight = new THREE.HemisphereLight(0xC8AA78, 0x667788, 1.0); // FIX #5: increased from 0.6
+const hemiLight = new THREE.HemisphereLight(0xC8AA78, 0x445522, 0.6);
 scene.add(hemiLight);
-
-// Ambient light for fill — prevents pitch-black shadows
-const ambientLight = new THREE.AmbientLight(0x889EBB, 0.35); // FIX #5: blue-grey ambient
-scene.add(ambientLight);
 
 const sunLight = new THREE.DirectionalLight(0xFFDDBB, 1.8);
 sunLight.position.set(40, 60, 30);
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 2048;  // FIX #5
-sunLight.shadow.mapSize.height = 2048; // FIX #5
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.camera.near = 0.5;
 sunLight.shadow.camera.far = 200;
 sunLight.shadow.camera.left = -80;
@@ -455,12 +377,12 @@ sunLight.shadow.normalBias = 0.02;
 scene.add(sunLight);
 scene.add(sunLight.target);
 
-const fillLight = new THREE.DirectionalLight(0x8899BB, 0.4);
+const fillLight = new THREE.DirectionalLight(0x8899BB, 0.3);
 fillLight.position.set(-30, 20, -40);
 scene.add(fillLight);
 
 // ============================================================
-//  SKY — FIX #10: Gradient sky dome, hazy warm tones
+//  SKY
 // ============================================================
 const sky = new Sky();
 sky.scale.setScalar(10000);
@@ -478,32 +400,18 @@ skyU['sunPosition'].value.copy(sunPos);
 sunLight.position.copy(sunPos).multiplyScalar(60);
 
 // ============================================================
-//  POST-PROCESSING — FIX #4: SSAO, FIX #6: Subtle Bloom
+//  POST-PROCESSING
 // ============================================================
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-
-// FIX #4: SSAO — #1 priority, makes objects feel grounded
-//const ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
-//ssaoPass.kernelRadius = 12;
-//ssaoPass.minDistance = 0.001;
-//ssaoPass.maxDistance = 0.15;
-//ssaoPass.output = SSAOPass.OUTPUT.Default;
-//composer.addPass(ssaoPass);
-
-// FIX #6: Subtle Bloom — low strength, just enough for fire/neon pop
 const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.12,  // strength: 0.1-0.15 range
-  0.4,   // radius
-  0.85   // threshold
+  new THREE.Vector2(window.innerWidth, window.innerHeight), 0.15, 0.4, 0.85
 );
 composer.addPass(bloomPass);
-
 composer.addPass(new SMAAPass(window.innerWidth, window.innerHeight));
 
 // ============================================================
-//  TERRAIN HEIGHT
+//  TERRAIN
 // ============================================================
 function terrainHeight(wx, wz) {
   const riverDist = Math.abs(wx - 20);
@@ -519,121 +427,6 @@ function terrainHeight(wx, wz) {
 }
 window._terrainHeight = terrainHeight;
 
-// ============================================================
-//  TERRAIN — FIX #2: Custom GLSL Texture Splatting ShaderMaterial
-// ============================================================
-function createTerrainSplatMaterial() {
-  // Load 3 Poly Haven textures for splatting
-  const grassTex = loadDiffuse(`${PH}/forrest_ground_01/forrest_ground_01_diff_1k.jpg`, 1, 1);
-  const dirtTex = loadDiffuse(`${PH}/brown_mud_02/brown_mud_02_diff_1k.jpg`, 1, 1);
-  const stoneTex = loadDiffuse(`${PH}/medieval_blocks_05/medieval_blocks_05_diff_1k.jpg`, 1, 1);
-
-  const splatVertexShader = `
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
-    varying vec3 vNormal;
-    void main() {
-      vUv = uv;
-      vec4 worldPos = modelMatrix * vec4(position, 1.0);
-      vWorldPos = worldPos.xyz;
-      vNormal = normalize(normalMatrix * normal);
-      gl_Position = projectionMatrix * viewMatrix * worldPos;
-    }
-  `;
-
-  const splatFragmentShader = `
-    uniform sampler2D uGrass;
-    uniform sampler2D uDirt;
-    uniform sampler2D uStone;
-    uniform float uTexScale;
-
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
-    varying vec3 vNormal;
-
-    // Simple hash for procedural noise
-    float hash(vec2 p) {
-      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-
-    float noise(vec2 p) {
-      vec2 i = floor(p);
-      vec2 f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      float a = hash(i);
-      float b = hash(i + vec2(1.0, 0.0));
-      float c = hash(i + vec2(0.0, 1.0));
-      float d = hash(i + vec2(1.0, 1.0));
-      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-    }
-
-    void main() {
-      vec2 texCoord = vWorldPos.xz * uTexScale;
-
-      vec4 grassCol = texture2D(uGrass, texCoord);
-      vec4 dirtCol = texture2D(uDirt, texCoord);
-      vec4 stoneCol = texture2D(uStone, texCoord);
-
-      // Procedural blend weights based on world position
-      float n1 = noise(vWorldPos.xz * 0.08);
-      float n2 = noise(vWorldPos.xz * 0.15 + 50.0);
-
-      // Path detection: dirt along main roads (X≈0, Z axis and Z≈0, X axis)
-      float pathX = 1.0 - smoothstep(0.0, 4.0, abs(vWorldPos.x));
-      float pathZ = 1.0 - smoothstep(0.0, 4.0, abs(vWorldPos.z));
-      float pathBridge = 1.0 - smoothstep(0.0, 4.0, abs(vWorldPos.x - 10.0)) * smoothstep(-15.0, -5.0, vWorldPos.z);
-      float pathAmount = clamp(max(max(pathX, pathZ), pathBridge) + n2 * 0.2, 0.0, 1.0);
-
-      // Building proximity: stone near castle center and buildings
-      float castleDist = length(vWorldPos.xz);
-      float stoneAmount = (1.0 - smoothstep(5.0, 18.0, castleDist)) * 0.7;
-
-      // Church area
-      float churchDist = length(vWorldPos.xz - vec2(12.0, -20.0));
-      stoneAmount += (1.0 - smoothstep(3.0, 10.0, churchDist)) * 0.5;
-
-      // Maid cafe area
-      float cafeDist = length(vWorldPos.xz - vec2(-18.0, -22.0));
-      stoneAmount += (1.0 - smoothstep(3.0, 8.0, cafeDist)) * 0.4;
-
-      // Add noise variation
-      stoneAmount = clamp(stoneAmount + n1 * 0.15, 0.0, 1.0);
-      pathAmount = clamp(pathAmount, 0.0, 1.0);
-
-      // Final blend: grass base, add dirt for paths, stone near buildings
-      float grassWeight = clamp(1.0 - pathAmount - stoneAmount, 0.0, 1.0);
-      float dirtWeight = pathAmount * (1.0 - stoneAmount * 0.5);
-      float stoneWeight = stoneAmount;
-
-      // Normalize
-      float totalW = grassWeight + dirtWeight + stoneWeight;
-      grassWeight /= totalW;
-      dirtWeight /= totalW;
-      stoneWeight /= totalW;
-
-      vec4 finalColor = grassCol * grassWeight + dirtCol * dirtWeight + stoneCol * stoneWeight;
-
-      // Simple directional lighting
-      vec3 lightDir = normalize(vec3(0.5, 0.8, 0.3));
-      float diff = max(dot(vNormal, lightDir), 0.0) * 0.6 + 0.4;
-      finalColor.rgb *= diff;
-
-      gl_FragColor = finalColor;
-    }
-  `;
-
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uGrass: { value: grassTex },
-      uDirt: { value: dirtTex },
-      uStone: { value: stoneTex },
-      uTexScale: { value: 0.15 }, // Controls texture tiling density
-    },
-    vertexShader: splatVertexShader,
-    fragmentShader: splatFragmentShader,
-  });
-}
-
 function createTerrain() {
   const SIZE = 128;
   const geo = new THREE.PlaneGeometry(SIZE * TILE, SIZE * TILE, SIZE, SIZE);
@@ -643,24 +436,16 @@ function createTerrain() {
     pos.setY(i, terrainHeight(pos.getX(i), pos.getZ(i)));
   }
   geo.computeVertexNormals();
-
-  // FIX #2: Custom GLSL splatted terrain material
-  let mat;
-  try {
-    mat = createTerrainSplatMaterial();
-  } catch(e) {
-    console.warn('Splatmap shader failed, using fallback:', e);
-    mat = new THREE.MeshStandardMaterial({ color: 0x3d6b35, roughness: 0.9 });
-  }
+  const mat = makeMat(TEX.grass(40, 40));
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   mesh.name = 'terrain';
   scene.add(mesh);
 
-  // Cobblestone paths (still overlay for depth)
-  createPath(0, -25 * TILE, 3 * TILE, 50 * TILE, 3, 50);
-  createPath(0, 0, 40 * TILE, 3 * TILE, 40, 3);
-  createPath(10, -5 * TILE, 14 * TILE, 3 * TILE, 14, 3);
+  // Cobblestone paths
+  createPath(0, -25 * TILE, 3 * TILE, 50 * TILE, 3, 50); // N-S
+  createPath(0, 0, 40 * TILE, 3 * TILE, 40, 3); // E-W
+  createPath(10, -5 * TILE, 14 * TILE, 3 * TILE, 14, 3); // to bridge
 
   return mesh;
 }
@@ -680,7 +465,7 @@ function createPath(cx, cz, w, d, rx, ry) {
 }
 
 // ============================================================
-//  GLTF MODEL LOADER — FIX #11: NearestFilter on model textures
+//  GLTF MODEL LOADER
 // ============================================================
 const gltfLoader = new GLTFLoader();
 const loadedModels = {};
@@ -695,15 +480,6 @@ function loadModel(path, name) {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          // FIX #11: Apply NearestFilter to all model textures
-          if (child.material) {
-            const mats = Array.isArray(child.material) ? child.material : [child.material];
-            mats.forEach(mat => {
-              ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(prop => {
-                if (mat[prop]) applyNearestFilter(mat[prop]);
-              });
-            });
-          }
         }
       });
       loadedModels[name] = model;
@@ -718,7 +494,7 @@ function loadModel(path, name) {
 }
 
 // ============================================================
-//  WORLD BUILDING
+//  WORLD BUILDING — place models
 // ============================================================
 const buildings = [];
 
@@ -746,11 +522,7 @@ function createRiver() {
     textureWidth: 512, textureHeight: 512,
     waterNormals: texLoader.load(
       'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/textures/waternormals.jpg',
-      (tex) => {
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        applyNearestFilter(tex); // FIX #11
-        assetLoaded('Water normals');
-      },
+      (tex) => { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; assetLoaded('Water normals'); },
     ),
     sunDirection: sunPos.clone(),
     sunColor: 0xffffff,
@@ -799,49 +571,9 @@ function createBridge() {
 }
 
 // ============================================================
-//  TREES — FIX #3: Alpha-Clipped Leaf Planes (billboard foliage)
+//  TREES (procedural — pack doesn't include them)
 // ============================================================
 const allTrees = [];
-
-// Create a procedural leaf texture for alpha-clipped planes
-function createLeafTexture(color1Hex, color2Hex) {
-  const size = 64;
-  const cv = document.createElement('canvas');
-  cv.width = size; cv.height = size;
-  const ctx = cv.getContext('2d');
-
-  // Transparent background
-  ctx.clearRect(0, 0, size, size);
-
-  // Draw random leaf blobs
-  const c1 = new THREE.Color(color1Hex);
-  const c2 = new THREE.Color(color2Hex);
-
-  for (let i = 0; i < 30; i++) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const r = 3 + Math.random() * 8;
-    // Distance from center falloff
-    const dx = (x - size/2) / (size/2);
-    const dy = (y - size/2) / (size/2);
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist > 0.85) continue; // Clip to roughly circular shape
-
-    const t = Math.random();
-    const cr = Math.floor((c1.r * (1-t) + c2.r * t) * 255);
-    const cg = Math.floor((c1.g * (1-t) + c2.g * t) * 255);
-    const cb = Math.floor((c1.b * (1-t) + c2.b * t) * 255);
-    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
-    ctx.beginPath();
-    ctx.ellipse(x, y, r, r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const tex = new THREE.CanvasTexture(cv);
-  applyNearestFilter(tex); // FIX #11
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
 
 function createTree(x, z, scale, type) {
   const group = new THREE.Group();
@@ -849,70 +581,29 @@ function createTree(x, z, scale, type) {
   const barkMat = colorMat(0x6B4226, 0.9);
 
   if (type === 'oak') {
-    // Trunk
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5*scale,0.8*scale,5*scale,6), barkMat);
     trunk.position.y = 2.5*scale; trunk.castShadow = true; group.add(trunk);
-
-    // FIX #3: Alpha-clipped intersecting planes for foliage
-    const leafTex = createLeafTexture(0x355E00, 0x4A7A20);
-    const leafMat = new THREE.MeshStandardMaterial({
-      map: leafTex,
-      alphaTest: 0.5, // FIX #3: Alpha clip
-      transparent: false,
-      side: THREE.DoubleSide,
-      roughness: 0.9,
-    });
-
-    const planeSize = 7 * scale;
-    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
-    // Create 3 intersecting planes at different angles
+    const leafMat = colorMat(0x355E00, 0.9);
+    const canopy = new THREE.Mesh(new THREE.IcosahedronGeometry(3.5*scale,1), leafMat);
+    canopy.position.y = 6.5*scale; canopy.scale.y = 0.65; canopy.castShadow = true; group.add(canopy);
     for (let i = 0; i < 3; i++) {
-      const plane = new THREE.Mesh(planeGeo, leafMat);
-      plane.position.y = 6 * scale;
-      plane.rotation.y = (i / 3) * Math.PI; // 0°, 60°, 120°
-      plane.castShadow = true;
-      group.add(plane);
+      const bump = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5*scale,0), leafMat);
+      const a = (i/3)*Math.PI*2+Math.random()*0.5;
+      bump.position.set(Math.cos(a)*2*scale, 5.5*scale+Math.random()*2, Math.sin(a)*2*scale);
+      bump.castShadow = true; group.add(bump);
     }
-    // One horizontal plane on top
-    const topPlane = new THREE.Mesh(planeGeo, leafMat);
-    topPlane.position.y = 8 * scale;
-    topPlane.rotation.x = -Math.PI / 2;
-    topPlane.scale.set(0.8, 0.8, 0.8);
-    topPlane.castShadow = true;
-    group.add(topPlane);
-
   } else if (type === 'willow') {
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4*scale,0.7*scale,6*scale,6), barkMat);
     trunk.position.y = 3*scale; trunk.castShadow = true; group.add(trunk);
-
-    // FIX #3: Willow leaf planes (drooping)
-    const leafTex = createLeafTexture(0x4A7A20, 0x3A6A10);
-    const leafMat = new THREE.MeshStandardMaterial({
-      map: leafTex,
-      alphaTest: 0.5,
-      transparent: false,
-      side: THREE.DoubleSide,
-      roughness: 0.9,
-    });
-
-    const planeSize = 6 * scale;
-    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize * 1.4);
-    for (let i = 0; i < 4; i++) {
-      const plane = new THREE.Mesh(planeGeo, leafMat);
-      plane.position.y = 6 * scale;
-      plane.rotation.y = (i / 4) * Math.PI;
-      plane.castShadow = true;
-      group.add(plane);
-    }
-
-    // Hanging vine meshes
+    const leafMat = colorMat(0x4A7A20, 0.9);
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(3*scale,6,4), leafMat);
+    canopy.position.y = 7*scale; canopy.scale.set(1,1.4,1); canopy.castShadow = true; group.add(canopy);
     const vineMat = colorMat(0x3A6A10, 0.95);
     for (let i = 0; i < 8; i++) {
       const a = (i/8)*Math.PI*2;
       const vine = new THREE.Mesh(new THREE.BoxGeometry(0.15,3*scale,0.15), vineMat);
       vine.position.set(Math.cos(a)*2.5*scale, 4*scale, Math.sin(a)*2.5*scale); group.add(vine);
     }
-
   } else if (type === 'dead') {
     const deadMat = colorMat(0x4A3520, 0.95);
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2*scale,0.5*scale,5*scale,5), deadMat);
@@ -925,30 +616,15 @@ function createTree(x, z, scale, type) {
       branch.castShadow = true; group.add(branch);
     }
   } else {
-    // Normal tree
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3*scale,0.5*scale,4*scale,6), barkMat);
     trunk.position.y = 2*scale; trunk.castShadow = true; group.add(trunk);
-
-    // FIX #3: Alpha-clipped foliage planes
-    const leafColor1 = [0x3A5F0B, 0x4A6F1B, 0x2D4A08][Math.floor(Math.random()*3)];
-    const leafTex = createLeafTexture(leafColor1, 0x5A8F2B);
-    const leafMat = new THREE.MeshStandardMaterial({
-      map: leafTex,
-      alphaTest: 0.5,
-      transparent: false,
-      side: THREE.DoubleSide,
-      roughness: 0.9,
-    });
-
-    const planeSize = 5 * scale;
-    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
-    for (let i = 0; i < 3; i++) {
-      const plane = new THREE.Mesh(planeGeo, leafMat);
-      plane.position.y = 5 * scale;
-      plane.rotation.y = (i / 3) * Math.PI + Math.random() * 0.3;
-      plane.castShadow = true;
-      group.add(plane);
-    }
+    const leafColor = [0x3A5F0B,0x4A6F1B,0x2D4A08][Math.floor(Math.random()*3)];
+    const leafMat = colorMat(leafColor, 0.9);
+    const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5*scale,0), leafMat);
+    c1.position.y = 5*scale; c1.scale.y = 0.6; c1.castShadow = true; group.add(c1);
+    const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8*scale,0), leafMat);
+    c2.position.y = 7*scale; c2.position.x = (Math.random()-0.5)*0.5; c2.scale.y = 0.7;
+    c2.castShadow = true; group.add(c2);
   }
 
   group.position.set(x, y, z);
@@ -1040,7 +716,7 @@ function createFishingSpots() {
 }
 
 // ============================================================
-//  MAID CAFÉ — with emissive neon for bloom pop (FIX #6)
+//  MAID CAFÉ (custom built — pink box with neon)
 // ============================================================
 function createMaidCafe() {
   const group = new THREE.Group();
@@ -1048,12 +724,14 @@ function createMaidCafe() {
   const roofMat = new THREE.MeshStandardMaterial({color:0xFF1493, roughness:0.6});
   const w=8, d=7, h=5;
 
+  // Walls
   const bw = new THREE.Mesh(new THREE.BoxGeometry(w,h,0.6), pinkMat);
   bw.position.set(0,h/2,-d/2); bw.castShadow=true; group.add(bw);
   const lw = new THREE.Mesh(new THREE.BoxGeometry(0.6,h,d), pinkMat);
   lw.position.set(-w/2,h/2,0); lw.castShadow=true; group.add(lw);
   const rw = new THREE.Mesh(new THREE.BoxGeometry(0.6,h,d), pinkMat);
   rw.position.set(w/2,h/2,0); rw.castShadow=true; group.add(rw);
+  // Front with door
   const fl = new THREE.Mesh(new THREE.BoxGeometry(2.5,h,0.6), pinkMat);
   fl.position.set(-w/2+1.25,h/2,d/2); fl.castShadow=true; group.add(fl);
   const fr = new THREE.Mesh(new THREE.BoxGeometry(2.5,h,0.6), pinkMat);
@@ -1061,32 +739,34 @@ function createMaidCafe() {
   const ft = new THREE.Mesh(new THREE.BoxGeometry(3,2,0.6), pinkMat);
   ft.position.set(0,h-1,d/2); ft.castShadow=true; group.add(ft);
 
+  // Roof
   const roof = new THREE.Mesh(new THREE.BoxGeometry(w+1.5,0.3,d+1.5), roofMat);
   roof.position.y = h; roof.castShadow=true; group.add(roof);
 
+  // Floor
   const floor = new THREE.Mesh(new THREE.BoxGeometry(w,0.2,d), colorMat(0xFFB6C1,0.7));
   floor.position.y = 0.1; floor.receiveShadow=true; group.add(floor);
 
-  // Neon lights — emissive for bloom pop (FIX #6)
+  // Neon lights
   [0xFF00FF,0xFF69B4,0xFFB6C1].forEach((c,i) => {
     const light = new THREE.PointLight(c, 4, 18);
     light.position.set(-2+i*2, 4, 3.8);
     group.add(light);
   });
 
-  // Glowing lanterns with strong emissive for bloom
+  // Glowing lanterns
   for (const sx of [-3,3]) {
     const lantern = new THREE.Mesh(
       new THREE.SphereGeometry(0.4,6,4),
-      new THREE.MeshStandardMaterial({color:0xFF69B4,emissive:0xFF1493,emissiveIntensity:1.2})
+      new THREE.MeshStandardMaterial({color:0xFF69B4,emissive:0xFF1493,emissiveIntensity:0.5})
     );
     lantern.position.set(sx,4.5,3.8); group.add(lantern);
   }
 
-  // Sign with high emissive for bloom
+  // Sign
   const sign = new THREE.Mesh(
     new THREE.BoxGeometry(4,1.2,0.15),
-    new THREE.MeshStandardMaterial({color:0xFFFFFF,emissive:0xFF69B4,emissiveIntensity:0.8,roughness:0.5})
+    new THREE.MeshStandardMaterial({color:0xFFFFFF,emissive:0xFF69B4,emissiveIntensity:0.3,roughness:0.5})
   );
   sign.position.set(0,5.8,3.6); group.add(sign);
 
@@ -1171,6 +851,7 @@ function createNPCs() {
   };
   scene.add(noob); npcs.push(noob);
 
+  // Maid NPC
   const maid = createHumanoid({shirt:0x111111,pants:0xFFFFFF,skin:0xFFE0BD,hair:0x222222});
   const apron = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.8,0.1), colorMat(0xFFFFFF,0.7));
   apron.position.set(0,1.9,0.35); maid.add(apron);
@@ -1185,6 +866,7 @@ function createNPCs() {
   };
   scene.add(maid); npcs.push(maid);
 
+  // Shopkeeper
   const shopkeep = createHumanoid({shirt:0xAA8833,pants:0x553311,hair:0x666666});
   shopkeep.position.set(-15,h(-15,12),12);
   shopkeep.userData = {
@@ -1194,6 +876,7 @@ function createNPCs() {
   };
   scene.add(shopkeep); npcs.push(shopkeep);
 
+  // Father Aereck at church
   const priest = createHumanoid({shirt:0x222222,pants:0x111111,hair:0xAAAAAA});
   priest.position.set(12,h(12,-18),-18);
   priest.userData = {
@@ -1249,6 +932,7 @@ function createGoblin() {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.8,0.3), colorMat(0x8B4513,0.85));
     leg.position.set(s,0.85,0); leg.castShadow=true; g.add(leg);
   }
+  // Spear
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.5,4), colorMat(0x6B4226,0.9));
   shaft.position.set(0.6,1.8,0.2); shaft.rotation.z=0.15; g.add(shaft);
   const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08,0.3,4), colorMat(0xAAAAAA,0.4,0.6));
@@ -1424,6 +1108,7 @@ class GameUI {
     ctx.fillStyle='#0a1a0a';ctx.fillRect(0,0,w,hh);const scale=1.2;const cx=player.group.position.x,cz=player.group.position.z;
     ctx.fillStyle='#2a4a1a';ctx.fillRect(0,0,w,hh);
     ctx.fillStyle='#224488';const rx=(22-cx)*scale+w/2;ctx.fillRect(rx-5,0,10,hh);
+    // Buildings as brown dots
     buildings.forEach(b=>{ctx.fillStyle=b.userData.name==='Maid Café ♡'?'#FF69B4':'#554433';
       const bx=(b.position.x-cx)*scale+w/2,bz=(b.position.z-cz)*scale+hh/2;
       if(bx>0&&bx<w&&bz>0&&bz<hh)ctx.fillRect(bx-4,bz-4,8,8);});
@@ -1436,8 +1121,7 @@ class GameUI {
 }
 
 // ============================================================
-//  OVERHEAD LABELS & HITSPLATS — FIX #8: 1px black text-shadow
-//  FIX #9: Troika-3D-Text for WebGL text with outlines
+//  OVERHEAD LABELS & HITSPLATS
 // ============================================================
 const labelContainer = document.createElement('div');
 labelContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
@@ -1445,50 +1129,12 @@ document.body.appendChild(labelContainer);
 const labels = new Map();
 const hitsplats = [];
 
-// FIX #9: Troika 3D text labels in world space
-// NPC labels use CSS overlays instead of Troika
-
-function getOrCreateTroikaLabel(npc) {
-  return null; // Troika removed, using CSS labels
-
-  const textMesh = new Text();
-  textMesh.text = npc.userData.overhead || npc.userData.name;
-  textMesh.fontSize = 0.4;
-  textMesh.color = npc.userData.type === 'enemy' ? 0xFFFF00 : 0x00FFFF;
-  textMesh.anchorX = 'center';
-  textMesh.anchorY = 'bottom';
-  textMesh.outlineWidth = 0.04;    // FIX #9: outline for readability
-  textMesh.outlineColor = 0x000000;
-  textMesh.font = undefined; // Use default
-  textMesh.sync();
-
-  scene.add(textMesh);
-  troikaLabels.set(npc, textMesh);
-  return textMesh;
-}
-
 function updateLabels() {
   [...npcs,...enemies].forEach(npc => {
-    if (npc.userData.isDead || !npc.visible) {
-      // Hide HTML label
-      if (labels.has(npc)) labels.get(npc).style.display = 'none';
-      // Hide Troika label
-      if (troikaLabels.has(npc)) troikaLabels.get(npc).visible = false;
-      return;
-    }
-
-    // Update Troika 3D label position (always faces camera via billboard)
-    const troikaLabel = getOrCreateTroikaLabel(npc);
-    const labelY = (npc.userData.type === 'enemy' && npc.userData.enemyType === 'chicken') ? 2 : 4.2;
-    troikaLabel.position.set(npc.position.x, npc.position.y + labelY + 0.5, npc.position.z);
-    troikaLabel.quaternion.copy(camera.quaternion); // Billboard effect
-    troikaLabel.visible = true;
-    troikaLabel.text = npc.userData.overhead || npc.userData.name;
-
-    // HTML overlay for health bars (keep for HP bar rendering)
+    if (npc.userData.isDead || !npc.visible) { if (labels.has(npc)) labels.get(npc).style.display = 'none'; return; }
     if (!labels.has(npc)) {
       const l = document.createElement('div');
-      l.style.cssText = 'position:absolute;color:#ff0;font-size:11px;font-weight:bold;text-shadow:1px 1px 0px #000;white-space:nowrap;text-align:center;transform:translate(-50%,-100%);pointer-events:none;';
+      l.style.cssText = 'position:absolute;color:#ff0;font-size:11px;font-weight:bold;text-shadow:1px 1px 2px #000;white-space:nowrap;text-align:center;transform:translate(-50%,-100%);pointer-events:none;';
       labelContainer.appendChild(l); labels.set(npc, l);
     }
     const l = labels.get(npc);
@@ -1496,18 +1142,17 @@ function updateLabels() {
     pos.y += (npc.userData.type === 'enemy' && npc.userData.enemyType === 'chicken') ? 2 : 4.2;
     pos.project(camera);
     if (pos.z > 1 || pos.z < -1) { l.style.display = 'none'; return; }
-
-    // Only show HTML label for health bar overlay
+    l.style.display = 'block';
+    l.style.left = `${(pos.x*0.5+0.5)*window.innerWidth}px`;
+    l.style.top = `${(-pos.y*0.5+0.5)*window.innerHeight}px`;
+    let text = npc.userData.overhead || npc.userData.name;
     if (npc.userData.type === 'enemy' && npc.userData.hp < npc.userData.maxHp) {
-      l.style.display = 'block';
-      l.style.left = `${(pos.x*0.5+0.5)*window.innerWidth}px`;
-      l.style.top = `${(-pos.y*0.5+0.5)*window.innerHeight + 16}px`;
       const pct = Math.max(0, npc.userData.hp / npc.userData.maxHp * 100);
       const col = pct > 50 ? '#0f0' : pct > 25 ? '#ff0' : '#f00';
-      l.innerHTML = `<div style="width:40px;height:4px;background:#300;margin:2px auto;"><div style="width:${pct}%;height:100%;background:${col};"></div></div>`;
-    } else {
-      l.style.display = 'none';
+      text += `<br><div style="width:40px;height:4px;background:#300;margin:2px auto;"><div style="width:${pct}%;height:100%;background:${col};"></div></div>`;
     }
+    l.innerHTML = text;
+    l.style.color = npc.userData.type === 'enemy' ? '#ff0' : '#00ffff';
   });
 }
 
@@ -1515,7 +1160,7 @@ function showHitsplat(target, damage) {
   const div = document.createElement('div');
   div.style.cssText = `position:absolute;pointer-events:none;font-weight:bold;font-size:14px;z-index:6;
     background:${damage > 0 ? '#c00' : '#004'};color:#fff;border-radius:50%;width:20px;height:20px;
-    display:flex;align-items:center;justify-content:center;text-shadow:1px 1px 0px #000;`;
+    display:flex;align-items:center;justify-content:center;text-shadow:1px 1px 0 #000;`;
   div.textContent = damage;
   labelContainer.appendChild(div);
   hitsplats.push({ div, target, startTime: performance.now(), duration: 1500 });
@@ -1681,6 +1326,7 @@ async function buildWorld() {
 
   loadingStatus.textContent = 'Loading 3D models...';
 
+  // Load all building models in parallel
   const modelDefs = [
     { path: 'buildings/green/building_castle_green.gltf', name: 'Castle' },
     { path: 'buildings/green/building_church_green.gltf', name: 'Church' },
@@ -1704,40 +1350,67 @@ async function buildWorld() {
 
   loadingStatus.textContent = 'Placing buildings...';
 
+  // Place buildings in village layout
+  // Castle — center/north (big, scale it up)
   placeModel(loadedModels['Castle'], 0, -5, 4, 0,
     { type: 'building', name: 'Lumbridge Castle', interactable: true });
+
+  // Church — northeast
   placeModel(loadedModels['Church'], 12, -20, 4, Math.PI * 0.5,
     { type: 'building', name: 'Lumbridge Church', interactable: true });
+
+  // Village square buildings — south/southwest
   placeModel(loadedModels['General Store'], -15, 12, 4, 0,
     { type: 'building', name: 'General Store', interactable: true });
+
   placeModel(loadedModels['Tavern'], -10, 20, 4, Math.PI,
     { type: 'building', name: 'Tavern', interactable: true });
+
   placeModel(loadedModels['Blacksmith'], -22, 18, 4, Math.PI * 0.5,
     { type: 'building', name: 'Blacksmith', interactable: true });
 
+  // Well in village center
   placeModel(loadedModels['Well'], -8, 15, 4, 0,
     { type: 'building', name: 'Well', interactable: true });
+
+  // Homes scattered
   placeModel(loadedModels['House A'], -18, -10, 4, Math.PI * 0.25,
     { type: 'building', name: "Bob's Axes", interactable: true });
+
   placeModel(loadedModels['House B'], 15, 22, 4, Math.PI * 0.75,
     { type: 'building', name: "Farmer's House", interactable: true });
+
   placeModel(loadedModels['House A'], -25, 5, 4, Math.PI * 1.5,
     { type: 'building', name: 'Small House', interactable: true });
+
+  // Windmill on a hill (south-west)
   placeModel(loadedModels['Windmill'], -35, -30, 4, 0,
     { type: 'building', name: 'Windmill', interactable: true });
+
+  // Watermill by the river
   placeModel(loadedModels['Watermill'], 18, 10, 4, Math.PI * 0.5,
     { type: 'building', name: 'Watermill', interactable: true });
+
+  // Lumbermill west
   placeModel(loadedModels['Lumbermill'], -40, 15, 4, 0,
     { type: 'building', name: 'Lumbermill', interactable: true });
+
+  // Towers flanking castle
   placeModel(loadedModels['Tower'], -12, -12, 4, 0,
     { type: 'building', name: 'Guard Tower', interactable: true });
+
   placeModel(loadedModels['Tower B'], 12, -12, 4, 0,
     { type: 'building', name: 'Guard Tower', interactable: true });
+
+  // Mine east of river
   placeModel(loadedModels['Mine'], 35, -18, 4, Math.PI,
     { type: 'building', name: 'Mining Site', interactable: true });
+
+  // Barracks near castle
   placeModel(loadedModels['Barracks'], 8, 5, 4, Math.PI * 0.5,
     { type: 'building', name: 'Barracks', interactable: true });
 
+  // Scatter some hex grass tiles for decoration around buildings
   if (loadedModels['Hex Grass']) {
     const hexPositions = [
       {x:0,z:0},{x:-10,z:5},{x:10,z:5},{x:-5,z:-10},{x:5,z:-10},
@@ -1775,7 +1448,7 @@ async function buildWorld() {
   ui = new GameUI(player);
 
   ui.addMessage('', 'Welcome to Lumbridge.', 'game');
-  ui.addMessage('', 'HDOS v3 — Premium HD Client with SSAO, Bloom, Splatmapped Terrain', 'game');
+  ui.addMessage('', 'HDOS HD Client loaded — now with real 3D models!', 'game');
   ui.addMessage('', 'Left-click to move. Right-click for options.', 'game');
   ui.addMessage('', 'Use WASD to rotate camera, scroll to zoom.', 'game');
 
@@ -1909,7 +1582,6 @@ window.addEventListener('resize', () => {
   renderer.setSize(w, h);
   composer.setSize(w, h);
   bloomPass.setSize(w, h);
-  ssaoPass.setSize(w, h);
 });
 
 // ============================================================
