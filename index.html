@@ -1131,6 +1131,7 @@ const hitsplats = [];
 
 function updateLabels() {
   [...npcs,...enemies].forEach(npc => {
+    if (!npc || !npc.position) return;
     if (npc.userData.isDead || !npc.visible) { if (labels.has(npc)) labels.get(npc).style.display = 'none'; return; }
     if (!labels.has(npc)) {
       const l = document.createElement('div');
